@@ -152,6 +152,17 @@ const deleteDonation = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
+    // Subtract points and count from donor
+    const donor = await User.findById(donation.donorId);
+    if (donor) {
+      let pointsToSubtract = 10; // Creation points
+      if (donation.status === 'completed') pointsToSubtract += 20; // Completion bonus
+      
+      donor.points = Math.max(0, donor.points - pointsToSubtract);
+      donor.donationCount = Math.max(0, donor.donationCount - 1);
+      await donor.save();
+    }
+
     await donation.deleteOne();
 
     return res.status(200).json({ success: true, message: 'Donation deleted' });
