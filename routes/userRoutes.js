@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { protect, restrictTo } = require('../middleware/authMiddleware');
+const { upload } = require('../middleware/upload');
 const {
-  getLeaderboard, getProfile, updateProfile, getAllUsers,
+  getLeaderboard, getProfile, updateProfile, changePassword, getAllUsers,
   adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser,
 } = require('../controllers/userController');
 
 router.get('/leaderboard', getLeaderboard);
 router.get('/profile', protect, getProfile);
-router.put('/profile', protect, updateProfile);
+router.put('/profile', protect, upload.single('profilePic'), updateProfile);
+router.put('/change-password', protect, changePassword);
 
 // Admin-only routes
 router.get('/all', protect, restrictTo('admin'), getAllUsers);

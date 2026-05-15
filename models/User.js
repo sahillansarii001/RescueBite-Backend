@@ -8,16 +8,18 @@ const userSchema = new mongoose.Schema({
   points: { type: Number, default: 0 },
   badges: { type: [String], default: [] },
   language: { type: String, enum: ['en', 'hi', 'mr'], default: 'en' },
-  location: { type: String, required: true, trim: true },
-  address: { type: String, required: true, trim: true },
-  mapLink: { type: String, required: true, trim: true },
-  phone: { type: String, required: true, trim: true },
+  location: { type: String, required: function() { return this.role !== 'admin'; }, trim: true },
+  address: { type: String, required: function() { return this.role !== 'admin'; }, trim: true },
+  mapLink: { type: String, required: function() { return this.role !== 'admin'; }, trim: true },
+  phone: { type: String, required: function() { return this.role !== 'admin'; }, trim: true },
   donationCount: { type: Number, default: 0 },
   donorType: {
     type: String,
     enum: ['individual', 'restaurant', 'marriage_hall', 'hotel', 'other'],
     default: undefined,
   },
+  profilePic: { type: String, default: '' },
+  refreshToken: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 

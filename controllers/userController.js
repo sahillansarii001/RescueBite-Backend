@@ -22,17 +22,46 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, location, language, donorType } = req.body;
+    const { name, email, location, language, donorType, phone, address } = req.body;
     const user = await User.findById(req.user.userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    
+    if (email && email !== user.email) {
+      const existing = await User.findOne({ email });
+      if (existing) return res.status(400).json({ success: false, message: 'Email already in use' });
+      user.email = email;
+    }
+
     if (name) user.name = name;
     if (location) user.location = location;
     if (language) user.language = language;
     if (donorType) user.donorType = donorType;
-    await user.save();
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+    if (req.file && req.file.path) user.profilePic = req.file.path;
+    await user.save({ validateBeforeSave: false });
     const userObj = user.toObject();
     delete userObj.password;
     return res.status(200).json({ success: true, user: userObj });
+  } catch (err) { next(err); }
+};
+
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Both current and new passwords are required' });
+    }
+    const user = await User.findById(req.user.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) return res.status(400).json({ success: false, message: 'Incorrect current password' });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json({ success: true, message: 'Password changed successfully' });
   } catch (err) { next(err); }
 };
 
@@ -85,7 +114,7 @@ const adminUpdateUser = async (req, res, next) => {
     if (address) user.address = address;
     if (phone) user.phone = phone;
     if (donorType) user.donorType = donorType;
-    await user.save();
+    await user.save({ validateBeforeSave: false });
     const userObj = user.toObject();
     delete userObj.password;
     return res.status(200).json({ success: true, user: userObj });
@@ -118,6 +147,6 @@ const adminGetUser = async (req, res, next) => {
 };
 
 module.exports = {
-  getLeaderboard, getProfile, updateProfile, getAllUsers,
+  getLeaderboard, getProfile, updateProfile, changePassword, getAllUsers,
   adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser,
 };
