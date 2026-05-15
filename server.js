@@ -1,30 +1,38 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
 
-const connectDB = require('./config/db');
-const authRoutes = require('./routes/authRoutes');
-const donationRoutes = require('./routes/donationRoutes');
-const userRoutes = require('./routes/userRoutes');
-const analyticsRoutes = require('./routes/analyticsRoutes');
-const contactRoutes = require('./routes/contactRoutes');
+const connectDB = require("./config/db");
+const authRoutes = require("./routes/authRoutes");
+const donationRoutes = require("./routes/donationRoutes");
+const userRoutes = require("./routes/userRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 
 connectDB();
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "https://rescue-bite-frontend.vercel.app",
+    ],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/donations', donationRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/contact', contactRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/donations", donationRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+  res.status(404).json({ success: false, message: "Route not found" });
 });
 
 app.use((err, req, res, next) => {
