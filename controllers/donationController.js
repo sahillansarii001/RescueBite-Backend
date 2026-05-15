@@ -158,9 +158,11 @@ const deleteDonation = async (req, res, next) => {
       let pointsToSubtract = 10; // Creation points
       if (donation.status === 'completed') pointsToSubtract += 20; // Completion bonus
       
-      donor.points = Math.max(0, donor.points - pointsToSubtract);
-      donor.donationCount = Math.max(0, donor.donationCount - 1);
-      await donor.save();
+      console.log(`Deducting ${pointsToSubtract} points from donor ${donor.email}. Status was ${donation.status}`);
+      
+      donor.points = Math.max(0, (donor.points || 0) - pointsToSubtract);
+      donor.donationCount = Math.max(0, (donor.donationCount || 0) - 1);
+      await donor.save({ validateBeforeSave: false });
     }
 
     await donation.deleteOne();
