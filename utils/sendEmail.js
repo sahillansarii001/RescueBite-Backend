@@ -6,11 +6,18 @@ const sendEmail = async (options) => {
   console.log(`[sendEmail] MAIL_USER configured: ${!!process.env.MAIL_USER}`);
   console.log(`[sendEmail] MAIL_PASS configured: ${!!process.env.MAIL_PASS}`);
 
+  // Use explicit SMTP settings — 'service: gmail' can fail on cloud platforms like Render
+  // Port 587 + STARTTLS is more reliable than port 465 SSL
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // use STARTTLS
     auth: {
       user: process.env.MAIL_USER,
       pass: process.env.MAIL_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false, // needed for some cloud environments
     },
   });
 
