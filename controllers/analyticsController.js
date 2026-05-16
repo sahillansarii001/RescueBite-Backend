@@ -51,7 +51,7 @@ const getAnalytics = async (req, res, next) => {
         },
         { $sort: { _id: 1 } },
       ]),
-      User.find({ role: 'donor' })
+      User.find({ role: 'donor', donationCount: { $gt: 0 } })
         .sort({ points: -1 })
         .limit(5)
         .select('name points donationCount donorType'),

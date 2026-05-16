@@ -8,12 +8,14 @@ const {
   getDonationById,
   updateDonationStatus,
   deleteDonation,
+  addImpactDetails,
 } = require('../controllers/donationController');
 
 router.post('/', protect, uploadSingle, createDonation);
 router.get('/', getAllDonations);
 router.get('/:id', getDonationById);
 router.put('/:id', protect, updateDonationStatus);
+router.put('/:id/impact', protect, addImpactDetails);
 router.delete('/:id', protect, deleteDonation);
 
 module.exports = router;

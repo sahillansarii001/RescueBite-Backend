@@ -146,7 +146,23 @@ const adminGetUser = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// Admin: verify an NGO
+const adminVerifyNgo = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (user.role !== 'ngo') return res.status(400).json({ success: false, message: 'Only NGOs can be verified' });
+    
+    user.isVerified = !user.isVerified; // toggle
+    await user.save({ validateBeforeSave: false });
+    
+    const userObj = user.toObject();
+    delete userObj.password;
+    return res.status(200).json({ success: true, user: userObj, message: user.isVerified ? 'NGO verified' : 'NGO verification removed' });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getLeaderboard, getProfile, updateProfile, changePassword, getAllUsers,
-  adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser,
+  adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser, adminVerifyNgo,
 };

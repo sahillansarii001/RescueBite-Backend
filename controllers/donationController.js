@@ -173,10 +173,44 @@ const deleteDonation = async (req, res, next) => {
   }
 };
 
+const addImpactDetails = async (req, res, next) => {
+  try {
+    const donation = await Donation.findById(req.params.id);
+    if (!donation) return res.status(404).json({ success: false, message: 'Donation not found' });
+    
+    if (donation.status !== 'completed') {
+      return res.status(400).json({ success: false, message: 'Only completed donations can have impact details' });
+    }
+    
+    if (req.user.role !== 'ngo' || !donation.acceptedBy || donation.acceptedBy.toString() !== req.user.userId) {
+      return res.status(403).json({ success: false, message: 'Only the NGO who accepted this donation can submit impact details' });
+    }
+
+    const { peopleFed, usedLocation, description } = req.body;
+    donation.impactDetails = {
+      peopleFed: Number(peopleFed) || 0,
+      usedLocation: usedLocation || '',
+      description: description || '',
+      submitted: true
+    };
+    
+    await donation.save();
+    
+    const populated = await Donation.findById(donation._id)
+      .populate('donorId', 'name email donorType location')
+      .populate('acceptedBy', 'name email');
+      
+    return res.status(200).json({ success: true, donation: populated, message: 'Impact details added successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createDonation,
   getAllDonations,
   getDonationById,
   updateDonationStatus,
   deleteDonation,
+  addImpactDetails,
 };
