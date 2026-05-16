@@ -10,6 +10,100 @@ const generateToken = (user) =>
 const generateRefreshToken = (user) =>
   jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_REFRESH_SECRET, { expiresIn: '30d' });
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await Otp.deleteMany({ email });
+    await Otp.create({ email, otp: otpCode });
+
+    if (process.env.MAIL_PASS) {
+      try {
+        await sendEmail({
+          email,
+          subject: 'RescueBite - Password Reset Code',
+          message: `Your password reset code is: ${otpCode}. It will expire in 10 minutes.`,
+          html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                  <h2 style="color: #166534; text-align: center;">Password Reset Request</h2>
+                  <p style="font-size: 16px; color: #475569;">Hello ${user.name},</p>
+                  <p style="font-size: 16px; color: #475569;">You requested a password reset for your RescueBite account. Your one-time verification code is:</p>
+                  <div style="background-color: #f0fdf4; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                    <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #15803d;">${otpCode}</span>
+                  </div>
+                  <p style="font-size: 14px; color: #64748b;">This code will expire in 10 minutes.</p>
+                  <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
+                  <p style="font-size: 12px; color: #94a3b8; text-align: center;">If you didn't request this, please ignore this email.</p>
+                 </div>`
+        });
+      } catch (emailErr) {
+        console.error('Email failed to send:', emailErr);
+        return res.status(500).json({ success: false, message: 'Failed to send OTP email.' });
+      }
+    } else {
+      console.log(`\n\n=== PASSWORD RESET EMAIL BYPASSED ===\nTo: ${email}\nOTP: ${otpCode}\n=====================================\n\n`);
+    }
+
+    return res.status(200).json({ success: true, message: 'Password reset OTP sent to email' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const verifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP are required' });
+    }
+
+    const otpRecord = await Otp.findOne({ email, otp });
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    return res.status(200).json({ success: true, message: 'OTP verified successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required' });
+    }
+
+    const otpRecord = await Otp.findOne({ email, otp });
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save({ validateBeforeSave: false });
+    
+    await Otp.deleteMany({ email });
+
+    return res.status(200).json({ success: true, message: 'Password has been reset successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const sendOtp = async (req, res, next) => {
   try {
     const { email, phone } = req.body;
@@ -243,4 +337,4 @@ const logout = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, refreshToken, logout, sendOtp };
+module.exports = { register, login, refreshToken, logout, sendOtp, forgotPassword, verifyOtp, resetPassword };
