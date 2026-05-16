@@ -6,22 +6,16 @@ const sendEmail = async (options) => {
   console.log(`[sendEmail] MAIL_USER configured: ${!!process.env.MAIL_USER}`);
   console.log(`[sendEmail] MAIL_PASS configured: ${!!process.env.MAIL_PASS}`);
 
-  // Use explicit SMTP settings — 'service: gmail' can fail on cloud platforms like Render
-  // Use explicit SMTP settings with a timeout to prevent hanging
   const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // Use SSL
+    service: 'gmail',
     auth: {
       user: process.env.MAIL_USER,
       pass: process.env.MAIL_PASS,
     },
     tls: {
       rejectUnauthorized: false,
-    },
-    connectionTimeout: 10000, // 10 seconds timeout
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
+      minVersion: 'TLSv1.2'
+    }
   });
 
   const mailOptions = {
@@ -37,7 +31,6 @@ const sendEmail = async (options) => {
     console.log(`[sendEmail] Email sent successfully. MessageId: ${info.messageId}`);
   } catch (err) {
     console.error(`[sendEmail] FAILED to send email.`);
-    console.error(`[sendEmail] Error code: ${err.code}`);
     console.error(`[sendEmail] Error message: ${err.message}`);
     // Re-throw so the controller can handle it
     throw err;
