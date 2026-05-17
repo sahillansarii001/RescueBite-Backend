@@ -5,11 +5,20 @@ const Donation = require('./models/Donation');
 // Load environment variables directly from the same folder
 require('dotenv').config();
 
-const dbUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/rescuebite';
+const dbUri = process.env.MONGODB_URI;
+
+if (!dbUri) {
+  console.error('[Error] MONGODB_URI is not defined in your .env file! Cannot connect to MongoDB Atlas.');
+  process.exit(1);
+}
+
+// Extract host securely to log verification without printing passwords
+const secureHost = dbUri.includes('@') ? dbUri.split('@')[1].split('?')[0].split('/')[0] : 'localhost';
+console.log(`[Sync] Connecting to MongoDB Atlas Cluster: ${secureHost}...`);
 
 mongoose.connect(dbUri)
 .then(async () => {
-  console.log('Connected to MongoDB');
+  console.log('[Sync] Connected successfully to MongoDB Atlas Cloud!');
   
   const users = await User.find({ role: 'donor' });
   console.log(`Found ${users.length} donors.`);
