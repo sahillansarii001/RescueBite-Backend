@@ -26,7 +26,7 @@ const forgotPassword = async (req, res, next) => {
     await Otp.deleteMany({ email });
     await Otp.create({ email, otp: otpCode });
 
-    if (process.env.MAIL_PASS) {
+    if (process.env.RESEND_API_KEY) {
       try {
         await sendEmail({
           email,
@@ -125,7 +125,7 @@ const sendOtp = async (req, res, next) => {
     await Otp.create({ email, phone, otp: otpCode });
 
     // Send Email if configured
-    if (process.env.MAIL_PASS) {
+    if (process.env.RESEND_API_KEY) {
       try {
         await sendEmail({
           email,
@@ -148,7 +148,7 @@ const sendOtp = async (req, res, next) => {
         return res.status(500).json({ success: false, message: 'Failed to send OTP email. Make sure email settings are correct.' });
       }
     } else {
-      console.log(`\n\n=== EMAIL BYPASSED (MAIL_PASS NOT SET) ===\nTo: ${email}\nOTP: ${otpCode}\n==========================================\n\n`);
+      console.log(`\n\n=== EMAIL BYPASSED (RESEND_API_KEY NOT SET) ===\nTo: ${email}\nOTP: ${otpCode}\n==========================================\n\n`);
     }
 
     return res.status(200).json({ success: true, message: 'OTP sent successfully to email' });
