@@ -26,7 +26,7 @@ const forgotPassword = async (req, res, next) => {
     await Otp.deleteMany({ email });
     await Otp.create({ email, otp: otpCode });
 
-    if (process.env.MAIL_PASS) {
+    if (process.env.OAUTH_REFRESH_TOKEN || process.env.MAIL_PASS) {
       try {
         await sendEmail({
           email,
@@ -125,7 +125,7 @@ const sendOtp = async (req, res, next) => {
     await Otp.create({ email, phone, otp: otpCode });
 
     // Send Email if configured
-    if (process.env.MAIL_PASS) {
+    if (process.env.OAUTH_REFRESH_TOKEN || process.env.MAIL_PASS) {
       try {
         await sendEmail({
           email,
