@@ -104,7 +104,7 @@ const getAllDonations = async (req, res, next) => {
 
     const donations = await Donation.find(filter)
       .populate('donorId', 'name email donorType location')
-      .populate('acceptedBy', 'name email')
+      .populate('acceptedBy', 'name email phone location address mapLink')
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ success: true, count: donations.length, donations });
@@ -117,7 +117,7 @@ const getDonationById = async (req, res, next) => {
   try {
     const donation = await Donation.findById(req.params.id)
       .populate('donorId', 'name email donorType location')
-      .populate('acceptedBy', 'name email');
+      .populate('acceptedBy', 'name email phone location address mapLink');
 
     if (!donation) {
       return res.status(404).json({ success: false, message: 'Donation not found' });
@@ -207,7 +207,7 @@ const updateDonationStatus = async (req, res, next) => {
     // Return populated donation
     const populated = await Donation.findById(donation._id)
       .populate('donorId', 'name email donorType location')
-      .populate('acceptedBy', 'name email');
+      .populate('acceptedBy', 'name email phone location address mapLink');
 
     return res.status(200).json({ success: true, donation: populated });
   } catch (err) {
@@ -272,7 +272,7 @@ const addImpactDetails = async (req, res, next) => {
     
     const populated = await Donation.findById(donation._id)
       .populate('donorId', 'name email donorType location')
-      .populate('acceptedBy', 'name email');
+      .populate('acceptedBy', 'name email phone location address mapLink');
       
     return res.status(200).json({ success: true, donation: populated, message: 'Impact details added successfully' });
   } catch (err) {
