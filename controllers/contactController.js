@@ -1,23 +1,25 @@
-const sendEmail = require('../utils/sendEmail');
+const sendEmail = require("../utils/sendEmail");
 
 const sendContact = async (req, res, next) => {
   try {
     const { name, email, subject, message } = req.body;
 
     if (!name || !email || !subject || !message) {
-      return res.status(400).json({ success: false, message: 'All fields are required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "All fields are required" });
     }
 
-    console.log('\n📬 New Contact Message');
-    console.log('─────────────────────────────────');
+    console.log("\n📬 New Contact Message");
+    console.log("─────────────────────────────────");
     console.log(`From    : ${name} <${email}>`);
     console.log(`Subject : ${subject}`);
     console.log(`Message : ${message}`);
-    console.log('─────────────────────────────────\n');
+    console.log("─────────────────────────────────\n");
 
     // Send email to admin
     await sendEmail({
-      email: process.env.MAIL_USER || 'sahilansari9967747153@gmail.com',
+      email: process.env.MAIL_USER || "sahilansari9967747153@gmail.com",
       subject: `RescueBite Contact: ${subject}`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; border: 1px solid #e0e0e0; border-radius: 10px;">
@@ -48,9 +50,9 @@ const sendContact = async (req, res, next) => {
       `,
     });
 
-    return res.status(200).json({ success: true, message: 'Message received' });
+    return res.status(200).json({ success: true, message: "Message received" });
   } catch (err) {
-    console.error('Contact error:', err.message);
+    console.error("Contact error:", err.message);
     next(err);
   }
 };

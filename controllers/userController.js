@@ -1,35 +1,49 @@
-const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const Donation = require('../models/Donation');
-const sendEmail = require('../utils/sendEmail');
+const bcrypt = require("bcryptjs");
+const User = require("../models/User");
+const Donation = require("../models/Donation");
+const sendEmail = require("../utils/sendEmail");
 
 const getLeaderboard = async (req, res, next) => {
   try {
-    const leaderboard = await User.find({ role: 'donor' })
+    const leaderboard = await User.find({ role: "donor" })
       .sort({ points: -1 })
       .limit(10)
-      .select('name points badges donationCount donorType');
+      .select("name points badges donationCount donorType");
     return res.status(200).json({ success: true, leaderboard });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 const getProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.userId).select('-password');
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const user = await User.findById(req.user.userId).select("-password");
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     return res.status(200).json({ success: true, user });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, email, location, language, donorType, phone, address } = req.body;
+    const { name, email, location, language, donorType, phone, address } =
+      req.body;
     const user = await User.findById(req.user.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
     if (email && email !== user.email) {
       const existing = await User.findOne({ email });
-      if (existing) return res.status(400).json({ success: false, message: 'Email already in use' });
+      if (existing)
+        return res
+          .status(400)
+          .json({ success: false, message: "Email already in use" });
       user.email = email;
     }
 
@@ -39,84 +53,145 @@ const updateProfile = async (req, res, next) => {
     if (donorType) user.donorType = donorType;
     if (phone) user.phone = phone;
     if (address) user.address = address;
-    if (req.body.websiteLink !== undefined) user.websiteLink = req.body.websiteLink;
-    if (req.body.ngoDocument !== undefined) user.ngoDocument = req.body.ngoDocument;
+    if (req.body.websiteLink !== undefined)
+      user.websiteLink = req.body.websiteLink;
+    if (req.body.ngoDocument !== undefined)
+      user.ngoDocument = req.body.ngoDocument;
     if (req.file && req.file.path) user.profilePic = req.file.path;
     await user.save({ validateBeforeSave: false });
     const userObj = user.toObject();
     delete userObj.password;
     return res.status(200).json({ success: true, user: userObj });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ success: false, message: 'Both current and new passwords are required' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Both current and new passwords are required",
+        });
     }
     const user = await User.findById(req.user.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) return res.status(400).json({ success: false, message: 'Incorrect current password' });
+    if (!isMatch)
+      return res
+        .status(400)
+        .json({ success: false, message: "Incorrect current password" });
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save({ validateBeforeSave: false });
 
-    return res.status(200).json({ success: true, message: 'Password changed successfully' });
-  } catch (err) { next(err); }
+    return res
+      .status(200)
+      .json({ success: true, message: "Password changed successfully" });
+  } catch (err) {
+    next(err);
+  }
 };
 
 const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select('-password');
+    const users = await User.find().select("-password");
     return res.status(200).json({ success: true, users });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Admin: create a user manually
 const adminCreateUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, location, address, mapLink, phone, language, donorType } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      location,
+      address,
+      mapLink,
+      phone,
+      language,
+      donorType,
+    } = req.body;
     const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ success: false, message: 'Email already registered' });
-    const hashedPassword = await bcrypt.hash(password || 'rescuebite123', 10);
-    const userData = { name, email, password: hashedPassword, role, location, address, mapLink, phone, language };
-    if (role === 'donor') userData.donorType = donorType || 'individual';
+    if (existing)
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already registered" });
+    const hashedPassword = await bcrypt.hash(password || "rescuebite123", 10);
+    const userData = {
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      location,
+      address,
+      mapLink,
+      phone,
+      language,
+    };
+    if (role === "donor") userData.donorType = donorType || "individual";
     const user = await User.create(userData);
-    
+
     // Trigger real-time SSE registration broadcast
-    const { broadcastNewUser } = require('../utils/sse');
+    const { broadcastNewUser } = require("../utils/sse");
     broadcastNewUser(user);
 
     const userObj = user.toObject();
     delete userObj.password;
     return res.status(201).json({ success: true, user: userObj });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Admin: delete a user and their donations
 const adminDeleteUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    if (user.role === 'admin') return res.status(403).json({ success: false, message: 'Cannot delete admin accounts' });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    if (user.role === "admin")
+      return res
+        .status(403)
+        .json({ success: false, message: "Cannot delete admin accounts" });
     await Donation.deleteMany({ donorId: user._id });
     await user.deleteOne();
-    return res.status(200).json({ success: true, message: 'User and their donations deleted' });
-  } catch (err) { next(err); }
+    return res
+      .status(200)
+      .json({ success: true, message: "User and their donations deleted" });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Admin: update any user's role, points, or basic info
 const adminUpdateUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const { name, email, role, points, location, address, phone, donorType } = req.body;
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    const { name, email, role, points, location, address, phone, donorType } =
+      req.body;
     if (name) user.name = name;
     if (email) user.email = email;
-    if (role && role !== 'admin') user.role = role;
+    if (role && role !== "admin") user.role = role;
     if (points !== undefined) user.points = Number(points);
     if (location) user.location = location;
     if (address) user.address = address;
@@ -126,52 +201,81 @@ const adminUpdateUser = async (req, res, next) => {
     const userObj = user.toObject();
     delete userObj.password;
     return res.status(200).json({ success: true, user: userObj });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Admin: reset a user's password
 const adminResetPassword = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Password must be at least 6 characters",
+        });
     }
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
-    return res.status(200).json({ success: true, message: 'Password reset successfully' });
-  } catch (err) { next(err); }
+    return res
+      .status(200)
+      .json({ success: true, message: "Password reset successfully" });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Admin: get a single user with their donations
 const adminGetUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const donations = await Donation.find({ donorId: user._id }).sort({ createdAt: -1 }).limit(20);
+    const user = await User.findById(req.params.id).select("-password");
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    const donations = await Donation.find({ donorId: user._id })
+      .sort({ createdAt: -1 })
+      .limit(20);
     return res.status(200).json({ success: true, user, donations });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Admin: verify an NGO
 const adminVerifyNgo = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    if (user.role !== 'ngo') return res.status(400).json({ success: false, message: 'Only NGOs can be verified' });
-    
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    if (user.role !== "ngo")
+      return res
+        .status(400)
+        .json({ success: false, message: "Only NGOs can be verified" });
+
     user.isVerified = !user.isVerified; // toggle
     await user.save({ validateBeforeSave: false });
-    
-    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+
+    const clientUrl = (
+      process.env.CLIENT_URL || "http://localhost:3000"
+    ).replace(/\/+$/, "");
 
     // Send successful verification email if activated
     if (user.isVerified) {
       try {
         await sendEmail({
           email: user.email,
-          subject: '🎉 Congratulations! Your NGO Account Has Been Verified!',
+          subject: "🎉 Congratulations! Your NGO Account Has Been Verified!",
           message: `Dear ${user.name},\n\nWe are absolutely thrilled to inform you that your NGO account on RescueBite has been verified successfully by our administration team!\n\nYou now have full administrative clearance to accept food donations, post food requests, and track your organization's direct community impact.\n\nThank you for partner-programming with RescueBite to reduce waste and fight hunger.\n\nBest regards,\nThe RescueBite Team`,
           html: `
             <div style="font-family: 'Outfit', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #f8fafc; border-radius: 24px; border: 1px solid #e2e8f0; color: #1e293b;">
@@ -220,37 +324,56 @@ const adminVerifyNgo = async (req, res, next) => {
                 © 2026 RescueBite Platform. All rights reserved.
               </p>
             </div>
-          `
+          `,
         });
       } catch (err) {
-        console.error('Failed to send NGO verification confirmation email:', err);
+        console.error(
+          "Failed to send NGO verification confirmation email:",
+          err,
+        );
       }
     }
-    
+
     const userObj = user.toObject();
     delete userObj.password;
-    return res.status(200).json({ success: true, user: userObj, message: user.isVerified ? 'NGO verified' : 'NGO verification removed' });
-  } catch (err) { next(err); }
+    return res
+      .status(200)
+      .json({
+        success: true,
+        user: userObj,
+        message: user.isVerified ? "NGO verified" : "NGO verification removed",
+      });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Admin: reject an NGO (clear document & set unverified, notifying them via email)
 const adminRejectNgo = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    if (user.role !== 'ngo') return res.status(400).json({ success: false, message: 'Only NGOs can be rejected' });
-    
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    if (user.role !== "ngo")
+      return res
+        .status(400)
+        .json({ success: false, message: "Only NGOs can be rejected" });
+
     user.isVerified = false;
     user.ngoDocument = null; // clear uploaded document
     await user.save({ validateBeforeSave: false });
 
-    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+    const clientUrl = (
+      process.env.CLIENT_URL || "http://localhost:3000"
+    ).replace(/\/+$/, "");
 
     // Send rejection email to the NGO
     try {
       await sendEmail({
         email: user.email,
-        subject: '⚠️ Notice: NGO Verification Document Rejected',
+        subject: "⚠️ Notice: NGO Verification Document Rejected",
         message: `Dear ${user.name},\n\nWe are writing to inform you that your uploaded NGO registration document on RescueBite was reviewed by our administration team and unfortunately has been rejected.\n\nTo complete your NGO verification, please log in to your dashboard and upload a valid, clearly readable registration document.\n\nIf you have any questions, please reach out to support@rescuebite.com.\n\nBest regards,\nThe RescueBite Team`,
         html: `
           <div style="font-family: 'Outfit', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #fffafb; border-radius: 24px; border: 1px solid #fee2e2; color: #1e293b;">
@@ -294,31 +417,46 @@ const adminRejectNgo = async (req, res, next) => {
               © 2026 RescueBite Platform. All rights reserved.
             </p>
           </div>
-        `
+        `,
       });
     } catch (err) {
-      console.error('Failed to send NGO rejection email:', err);
+      console.error("Failed to send NGO rejection email:", err);
     }
 
     const userObj = user.toObject();
     delete userObj.password;
-    return res.status(200).json({ success: true, user: userObj, message: 'NGO verification document rejected and reset successfully' });
-  } catch (err) { next(err); }
+    return res
+      .status(200)
+      .json({
+        success: true,
+        user: userObj,
+        message: "NGO verification document rejected and reset successfully",
+      });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Coordinate Extractor Helper
-const extractCoordinates = (mapLink, locationName = '') => {
+const extractCoordinates = (mapLink, locationName = "") => {
   const regex = /@?(-?\d+\.\d+),\s*(-?\d+\.\d+)/;
-  const match = (mapLink || '').match(regex);
+  const match = (mapLink || "").match(regex);
   if (match) {
     const lat = parseFloat(match[1]);
     const lon = parseFloat(match[2]);
-    if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+    if (
+      !isNaN(lat) &&
+      !isNaN(lon) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lon >= -180 &&
+      lon <= 180
+    ) {
       return { latitude: lat, longitude: lon };
     }
   }
 
-  const simpleMatch = (mapLink || '').match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+  const simpleMatch = (mapLink || "").match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
   if (simpleMatch) {
     const lat = parseFloat(simpleMatch[1]);
     const lon = parseFloat(simpleMatch[2]);
@@ -328,49 +466,53 @@ const extractCoordinates = (mapLink, locationName = '') => {
   }
 
   // Fallback based on Location Name
-  const loc = (locationName || '').toLowerCase();
-  if (loc.includes('powai') || loc.includes('iit')) {
+  const loc = (locationName || "").toLowerCase();
+  if (loc.includes("powai") || loc.includes("iit")) {
     return { latitude: 19.1334, longitude: 72.9133 };
-  } else if (loc.includes('andheri')) {
+  } else if (loc.includes("andheri")) {
     return { latitude: 19.1197, longitude: 72.8468 };
-  } else if (loc.includes('bandra')) {
-    return { latitude: 19.0600, longitude: 72.8311 };
-  } else if (loc.includes('colaba')) {
+  } else if (loc.includes("bandra")) {
+    return { latitude: 19.06, longitude: 72.8311 };
+  } else if (loc.includes("colaba")) {
     return { latitude: 18.9067, longitude: 72.8147 };
-  } else if (loc.includes('dadar')) {
+  } else if (loc.includes("dadar")) {
     return { latitude: 19.0178, longitude: 72.8478 };
-  } else if (loc.includes('goregaon')) {
-    return { latitude: 19.1663, longitude: 72.8490 };
-  } else if (loc.includes('borivali')) {
+  } else if (loc.includes("goregaon")) {
+    return { latitude: 19.1663, longitude: 72.849 };
+  } else if (loc.includes("borivali")) {
     return { latitude: 19.2307, longitude: 72.8567 };
-  } else if (loc.includes('thane')) {
+  } else if (loc.includes("thane")) {
     return { latitude: 19.2183, longitude: 72.9781 };
-  } else if (loc.includes('vashi') || loc.includes('navi')) {
+  } else if (loc.includes("vashi") || loc.includes("navi")) {
     return { latitude: 19.0745, longitude: 73.0012 };
-  } else if (loc.includes('kurla')) {
+  } else if (loc.includes("kurla")) {
     return { latitude: 19.0726, longitude: 72.8845 };
   }
 
   // Default to center of Mumbai (Andheri/Powai region) with deterministic perturbation
-  const hash = (locationName || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const pertLat = ((hash % 100) / 1000) - 0.05;
-  const pertLon = (((hash * 17) % 100) / 1000) - 0.05;
-  return { 
-    latitude: 19.1197 + pertLat, 
-    longitude: 72.8468 + pertLon 
+  const hash = (locationName || "")
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const pertLat = (hash % 100) / 1000 - 0.05;
+  const pertLon = ((hash * 17) % 100) / 1000 - 0.05;
+  return {
+    latitude: 19.1197 + pertLat,
+    longitude: 72.8468 + pertLon,
   };
 };
 
 // Haversine Distance Formula
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371; // Radius of Earth in km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km
 };
 
@@ -378,28 +520,41 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 const getNearestCounterparts = async (req, res, next) => {
   try {
     const currentUser = await User.findById(req.user.userId);
-    if (!currentUser) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!currentUser)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
-    const currentUserCoords = extractCoordinates(currentUser.mapLink, currentUser.location);
+    const currentUserCoords = extractCoordinates(
+      currentUser.mapLink,
+      currentUser.location,
+    );
 
     let query = {};
-    if (currentUser.role === 'donor') {
-      query = { role: 'ngo', isVerified: true };
-    } else if (currentUser.role === 'ngo') {
-      query = { role: 'donor' };
+    if (currentUser.role === "donor") {
+      query = { role: "ngo", isVerified: true };
+    } else if (currentUser.role === "ngo") {
+      query = { role: "donor" };
     } else {
-      return res.status(400).json({ success: false, message: 'Only donors or NGOs can query nearest partners' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Only donors or NGOs can query nearest partners",
+        });
     }
 
-    const counterparts = await User.find(query).select('name email phone location address mapLink donorType profilePic isVerified');
+    const counterparts = await User.find(query).select(
+      "name email phone location address mapLink donorType profilePic isVerified",
+    );
 
-    const mapped = counterparts.map(c => {
+    const mapped = counterparts.map((c) => {
       const coords = extractCoordinates(c.mapLink, c.location);
       const distance = getDistance(
         currentUserCoords.latitude,
         currentUserCoords.longitude,
         coords.latitude,
-        coords.longitude
+        coords.longitude,
       );
       return {
         _id: c._id,
@@ -413,7 +568,7 @@ const getNearestCounterparts = async (req, res, next) => {
         profilePic: c.profilePic,
         isVerified: c.isVerified,
         coordinates: coords,
-        distance: parseFloat(distance.toFixed(2))
+        distance: parseFloat(distance.toFixed(2)),
       };
     });
 
@@ -424,13 +579,25 @@ const getNearestCounterparts = async (req, res, next) => {
       success: true,
       currentUserCoords,
       currentUserAddress: currentUser.address,
-      nearest: mapped
+      nearest: mapped,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 module.exports = {
-  getLeaderboard, getProfile, updateProfile, changePassword, getAllUsers,
-  adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser, adminVerifyNgo, adminRejectNgo,
+  getLeaderboard,
+  getProfile,
+  updateProfile,
+  changePassword,
+  getAllUsers,
+  adminCreateUser,
+  adminDeleteUser,
+  adminUpdateUser,
+  adminResetPassword,
+  adminGetUser,
+  adminVerifyNgo,
+  adminRejectNgo,
   getNearestCounterparts,
 };

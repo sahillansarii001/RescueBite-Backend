@@ -1,25 +1,35 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const Otp = require('../models/Otp');
-const sendEmail = require('../utils/sendEmail');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const Otp = require("../models/Otp");
+const sendEmail = require("../utils/sendEmail");
 
 const generateToken = (user) =>
-  jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '15m' });
+  jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: "15m",
+  });
 
 const generateRefreshToken = (user) =>
-  jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_REFRESH_SECRET, { expiresIn: '30d' });
+  jwt.sign(
+    { userId: user._id, role: user.role },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: "30d" },
+  );
 
 const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
     if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -30,7 +40,7 @@ const forgotPassword = async (req, res, next) => {
       try {
         await sendEmail({
           email,
-          subject: 'RescueBite - Password Reset Code',
+          subject: "RescueBite - Password Reset Code",
           message: `Your password reset code is: ${otpCode}. It will expire in 10 minutes.`,
           html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
                   <h2 style="color: #166534; text-align: center;">Password Reset Request</h2>
@@ -42,17 +52,27 @@ const forgotPassword = async (req, res, next) => {
                   <p style="font-size: 14px; color: #64748b;">This code will expire in 10 minutes.</p>
                   <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
                   <p style="font-size: 12px; color: #94a3b8; text-align: center;">If you didn't request this, please ignore this email.</p>
-                 </div>`
+                 </div>`,
         });
       } catch (emailErr) {
-        console.error('Email failed to send:', emailErr);
-        return res.status(500).json({ success: false, message: 'Failed to send OTP email. Make sure App Password is correct.' });
+        console.error("Email failed to send:", emailErr);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message:
+              "Failed to send OTP email. Make sure App Password is correct.",
+          });
       }
     } else {
-      console.log(`\n\n=== PASSWORD RESET EMAIL BYPASSED ===\nTo: ${email}\nOTP: ${otpCode}\n=====================================\n\n`);
+      console.log(
+        `\n\n=== PASSWORD RESET EMAIL BYPASSED ===\nTo: ${email}\nOTP: ${otpCode}\n=====================================\n\n`,
+      );
     }
 
-    return res.status(200).json({ success: true, message: 'Password reset OTP sent to email' });
+    return res
+      .status(200)
+      .json({ success: true, message: "Password reset OTP sent to email" });
   } catch (err) {
     next(err);
   }
@@ -62,15 +82,21 @@ const verifyOtp = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp) {
-      return res.status(400).json({ success: false, message: 'Email and OTP are required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and OTP are required" });
     }
 
     const otpRecord = await Otp.findOne({ email, otp });
     if (!otpRecord) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired OTP" });
     }
 
-    return res.status(200).json({ success: true, message: 'OTP verified successfully' });
+    return res
+      .status(200)
+      .json({ success: true, message: "OTP verified successfully" });
   } catch (err) {
     next(err);
   }
@@ -80,25 +106,36 @@ const resetPassword = async (req, res, next) => {
   try {
     const { email, otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
-      return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Email, OTP, and new password are required",
+        });
     }
 
     const otpRecord = await Otp.findOne({ email, otp });
     if (!otpRecord) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired OTP" });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save({ validateBeforeSave: false });
-    
+
     await Otp.deleteMany({ email });
 
-    return res.status(200).json({ success: true, message: 'Password has been reset successfully' });
+    return res
+      .status(200)
+      .json({ success: true, message: "Password has been reset successfully" });
   } catch (err) {
     next(err);
   }
@@ -109,12 +146,16 @@ const sendOtp = async (req, res, next) => {
     const { email, phone } = req.body;
 
     if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required for OTP' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required for OTP" });
     }
 
     const existing = await User.findOne({ email });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Email already registered' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already registered" });
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -129,7 +170,7 @@ const sendOtp = async (req, res, next) => {
       try {
         await sendEmail({
           email,
-          subject: 'RescueBite - Registration Verification Code',
+          subject: "RescueBite - Registration Verification Code",
           message: `Your verification code is: ${otpCode}. It will expire in 10 minutes.`,
           html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
                   <h2 style="color: #166534; text-align: center;">RescueBite Verification</h2>
@@ -141,17 +182,27 @@ const sendOtp = async (req, res, next) => {
                   <p style="font-size: 14px; color: #64748b;">This code will expire in 10 minutes.</p>
                   <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
                   <p style="font-size: 12px; color: #94a3b8; text-align: center;">If you didn't request this, please ignore this email.</p>
-                 </div>`
+                 </div>`,
         });
       } catch (emailErr) {
-        console.error('Email failed to send:', emailErr);
-        return res.status(500).json({ success: false, message: 'Failed to send OTP email. Make sure App Password is correct.' });
+        console.error("Email failed to send:", emailErr);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message:
+              "Failed to send OTP email. Make sure App Password is correct.",
+          });
       }
     } else {
-      console.log(`\n\n=== EMAIL BYPASSED (MAIL_PASS NOT SET) ===\nTo: ${email}\nOTP: ${otpCode}\n==========================================\n\n`);
+      console.log(
+        `\n\n=== EMAIL BYPASSED (MAIL_PASS NOT SET) ===\nTo: ${email}\nOTP: ${otpCode}\n==========================================\n\n`,
+      );
     }
 
-    return res.status(200).json({ success: true, message: 'OTP sent successfully to email' });
+    return res
+      .status(200)
+      .json({ success: true, message: "OTP sent successfully to email" });
   } catch (err) {
     next(err);
   }
@@ -159,32 +210,69 @@ const sendOtp = async (req, res, next) => {
 
 const register = async (req, res, next) => {
   try {
-    const { name, email, password, role, location, language, donorType, address, mapLink, phone, otp, websiteLink, ngoDocument } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      location,
+      language,
+      donorType,
+      address,
+      mapLink,
+      phone,
+      otp,
+      websiteLink,
+      ngoDocument,
+    } = req.body;
 
     const existing = await User.findOne({ email });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Email already registered' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already registered" });
     }
 
-    if (role !== 'admin') {
+    if (role !== "admin") {
       if (!otp) {
-        return res.status(400).json({ success: false, message: 'OTP is required for registration' });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "OTP is required for registration",
+          });
       }
 
       // Verify OTP
       const otpRecord = await Otp.findOne({ email, otp });
       if (!otpRecord) {
-        return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid or expired OTP" });
       }
     }
 
     // Validate required fields (skip for admin)
-    if (role !== 'admin') {
-      if (!address) return res.status(400).json({ success: false, message: 'Address is required' });
-      if (!mapLink) return res.status(400).json({ success: false, message: 'Google Maps link is required' });
-      if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required' });
-      if (role === 'ngo' && !ngoDocument) {
-        return res.status(400).json({ success: false, message: 'NGO registration document is required' });
+    if (role !== "admin") {
+      if (!address)
+        return res
+          .status(400)
+          .json({ success: false, message: "Address is required" });
+      if (!mapLink)
+        return res
+          .status(400)
+          .json({ success: false, message: "Google Maps link is required" });
+      if (!phone)
+        return res
+          .status(400)
+          .json({ success: false, message: "Phone number is required" });
+      if (role === "ngo" && !ngoDocument) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "NGO registration document is required",
+          });
       }
     }
 
@@ -203,8 +291,8 @@ const register = async (req, res, next) => {
       ngoDocument,
     };
     // Only set donorType for donor role to avoid enum validation error
-    if (role === 'donor' && donorType) userData.donorType = donorType;
-    else if (role === 'donor') userData.donorType = 'individual';
+    if (role === "donor" && donorType) userData.donorType = donorType;
+    else if (role === "donor") userData.donorType = "individual";
 
     const user = await User.create(userData);
 
@@ -214,10 +302,10 @@ const register = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Trigger real-time SSE registration broadcast
-    const { broadcastNewUser } = require('../utils/sse');
+    const { broadcastNewUser } = require("../utils/sse");
     broadcastNewUser(user);
 
-    if (role !== 'admin') {
+    if (role !== "admin") {
       await Otp.deleteMany({ email });
     }
 
@@ -253,17 +341,20 @@ const login = async (req, res, next) => {
     const { email, password } = req.body;
 
     // Secure Admin Login via .env credentials
-    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+    if (
+      email === process.env.ADMIN_EMAIL &&
+      password === process.env.ADMIN_PASSWORD
+    ) {
       const adminUser = {
-        _id: 'admin_env_id_001',
-        name: 'System Admin',
+        _id: "admin_env_id_001",
+        name: "System Admin",
         email: process.env.ADMIN_EMAIL,
-        role: 'admin',
+        role: "admin",
       };
-      
+
       const token = generateToken(adminUser);
       const refreshToken = generateRefreshToken(adminUser);
-      
+
       return res.status(200).json({
         success: true,
         token,
@@ -274,13 +365,17 @@ const login = async (req, res, next) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       console.log(`Login failed: Password mismatch for ${email}`);
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid credentials" });
     }
 
     const token = generateToken(user);
@@ -311,7 +406,7 @@ const login = async (req, res, next) => {
       },
     });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error("Login error:", err);
     next(err);
   }
 };
@@ -319,20 +414,27 @@ const login = async (req, res, next) => {
 const refreshToken = async (req, res, next) => {
   try {
     const { token } = req.body;
-    if (!token) return res.status(401).json({ success: false, message: 'Refresh token required' });
+    if (!token)
+      return res
+        .status(401)
+        .json({ success: false, message: "Refresh token required" });
 
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
     const user = await User.findById(decoded.userId);
 
     if (!user || user.refreshToken !== token) {
-      return res.status(403).json({ success: false, message: 'Invalid refresh token' });
+      return res
+        .status(403)
+        .json({ success: false, message: "Invalid refresh token" });
     }
 
     const newAccessToken = generateToken(user);
-    
+
     return res.status(200).json({ success: true, token: newAccessToken });
   } catch (err) {
-    return res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
+    return res
+      .status(403)
+      .json({ success: false, message: "Invalid or expired refresh token" });
   }
 };
 
@@ -346,10 +448,21 @@ const logout = async (req, res, next) => {
         await user.save({ validateBeforeSave: false });
       }
     }
-    return res.status(200).json({ success: true, message: 'Logged out successfully' });
+    return res
+      .status(200)
+      .json({ success: true, message: "Logged out successfully" });
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { register, login, refreshToken, logout, sendOtp, forgotPassword, verifyOtp, resetPassword };
+module.exports = {
+  register,
+  login,
+  refreshToken,
+  logout,
+  sendOtp,
+  forgotPassword,
+  verifyOtp,
+  resetPassword,
+};

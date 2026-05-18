@@ -1,34 +1,41 @@
-const sendEmail = require('../utils/sendEmail');
+const sendEmail = require("../utils/sendEmail");
 
 const subscribe = async (req, res, next) => {
   try {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ success: false, message: 'Please enter a valid email address' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Please enter a valid email address",
+        });
     }
 
-    console.log('\n📰 New Newsletter Subscription');
-    console.log('─────────────────────────────────');
+    console.log("\n📰 New Newsletter Subscription");
+    console.log("─────────────────────────────────");
     console.log(`Subscriber Email: ${email}`);
-    console.log('─────────────────────────────────\n');
+    console.log("─────────────────────────────────\n");
 
     // Get current time in IST
-    const istTimeStr = new Date().toLocaleString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      dateStyle: 'medium',
-      timeStyle: 'medium',
+    const istTimeStr = new Date().toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      dateStyle: "medium",
+      timeStyle: "medium",
     });
 
     // Send email to admin
     await sendEmail({
-      email: process.env.MAIL_USER || 'sahilansari9967747153@gmail.com',
+      email: process.env.MAIL_USER || "sahilansari9967747153@gmail.com",
       subject: `RescueBite Newsletter: New Subscription from ${email}`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; border: 1px solid #e0e0e0; border-radius: 10px;">
@@ -51,9 +58,11 @@ const subscribe = async (req, res, next) => {
       `,
     });
 
-    return res.status(200).json({ success: true, message: 'Successfully subscribed' });
+    return res
+      .status(200)
+      .json({ success: true, message: "Successfully subscribed" });
   } catch (err) {
-    console.error('Newsletter subscription error:', err.message);
+    console.error("Newsletter subscription error:", err.message);
     next(err);
   }
 };
