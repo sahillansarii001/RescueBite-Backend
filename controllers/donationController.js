@@ -38,6 +38,51 @@ const createDonation = async (req, res, next) => {
 
     await user.save();
 
+    // Find all verified NGOs
+    const verifiedNgos = await User.find({ role: 'ngo', isVerified: true });
+
+    // Send email notification to each verified NGO
+    for (const ngo of verifiedNgos) {
+      try {
+        await sendEmail({
+          email: ngo.email,
+          subject: '🍲 New Food Donation Available!',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #c8e6c9; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+              <h2 style="color: #2e7d32; margin-top: 0;">New Food Donation Available on RescueBite!</h2>
+              <p>Hello <strong>${ngo.name}</strong>,</p>
+              <p>A new food donation has just been uploaded and is ready for collection:</p>
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr style="background-color: #f1f8e9;">
+                  <td style="padding: 10px; font-weight: bold; border: 1px solid #dcedc8; width: 120px;">Food Item:</td>
+                  <td style="padding: 10px; border: 1px solid #dcedc8;">${foodName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px; font-weight: bold; border: 1px solid #dcedc8;">Quantity:</td>
+                  <td style="padding: 10px; border: 1px solid #dcedc8;">${quantity}</td>
+                </tr>
+                <tr style="background-color: #f1f8e9;">
+                  <td style="padding: 10px; font-weight: bold; border: 1px solid #dcedc8;">Location:</td>
+                  <td style="padding: 10px; border: 1px solid #dcedc8;">${location}</td>
+                </tr>
+                ${description ? `
+                <tr>
+                  <td style="padding: 10px; font-weight: bold; border: 1px solid #dcedc8;">Description:</td>
+                  <td style="padding: 10px; border: 1px solid #dcedc8;">${description}</td>
+                </tr>` : ''}
+              </table>
+              <p>Please log in to your RescueBite dashboard to accept this donation before it is claimed or expires.</p>
+              <p style="margin-top: 25px;"><a href="http://localhost:3000/login" style="background-color: #2e7d32; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 2px 4px rgba(46,125,50,0.2);">Go to Dashboard</a></p>
+              <hr style="border: 0; border-top: 1px solid #e0e0e0; margin-top: 30px;" />
+              <p style="font-size: 11px; color: #757575;">This is an automated notification from RescueBite. Please do not reply to this email.</p>
+            </div>
+          `
+        });
+      } catch (mailErr) {
+        console.error(`Failed to send donation email to NGO ${ngo.email}:`, mailErr);
+      }
+    }
+
     return res.status(201).json({
       success: true,
       donation,
