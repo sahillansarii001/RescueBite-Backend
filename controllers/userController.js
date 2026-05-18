@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Donation = require('../models/Donation');
+const sendEmail = require('../utils/sendEmail');
 
 const getLeaderboard = async (req, res, next) => {
   try {
@@ -155,6 +156,67 @@ const adminVerifyNgo = async (req, res, next) => {
     
     user.isVerified = !user.isVerified; // toggle
     await user.save({ validateBeforeSave: false });
+    
+    // Send successful verification email if activated
+    if (user.isVerified) {
+      try {
+        await sendEmail({
+          email: user.email,
+          subject: '🎉 Congratulations! Your NGO Account Has Been Verified!',
+          message: `Dear ${user.name},\n\nWe are absolutely thrilled to inform you that your NGO account on RescueBite has been verified successfully by our administration team!\n\nYou now have full administrative clearance to accept food donations, post food requests, and track your organization's direct community impact.\n\nThank you for partner-programming with RescueBite to reduce waste and fight hunger.\n\nBest regards,\nThe RescueBite Team`,
+          html: `
+            <div style="font-family: 'Outfit', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #f8fafc; border-radius: 24px; border: 1px solid #e2e8f0; color: #1e293b;">
+              <!-- Header Brand -->
+              <div style="text-align: center; margin-bottom: 24px;">
+                <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: linear-gradient(135deg, #15803d, #166534); border-radius: 12px; color: #ffffff; font-weight: 800; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; margin-bottom: 8px;">R</div>
+                <h1 style="font-size: 24px; font-weight: 900; color: #14532d; margin: 0; tracking: -0.025em;">RescueBite</h1>
+                <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #166534; font-weight: 700; margin: 2px 0 0 0;">Food Security Platform</p>
+              </div>
+
+              <!-- Main Card -->
+              <div style="background-color: #ffffff; padding: 32px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                <h2 style="font-size: 20px; font-weight: 800; color: #1e293b; margin-top: 0; margin-bottom: 16px; text-align: center; background: linear-gradient(135deg, #15803d, #16a34a); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🎉 Verification Successful!</h2>
+                
+                <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 16px;">Dear <strong>${user.name}</strong>,</p>
+                
+                <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 20px;">We are absolutely thrilled to inform you that your RescueBite NGO account has been **verified successfully** by our administration team!</p>
+                
+                <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                  <p style="font-size: 13px; font-weight: 700; color: #14532d; margin: 0 0 4px 0;">🔓 Features Unlocked for Your Organization:</p>
+                  <ul style="font-size: 12px; color: #166534; margin: 0; padding-left: 20px; line-height: 1.6;">
+                    <li>Accept available food donations from local restaurants in real-time.</li>
+                    <li>Post customized NGO Food Requests directly to our global donor feeds.</li>
+                    <li>Record and trace your organization's positive direct community impact points.</li>
+                  </ul>
+                </div>
+
+                <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 24px;">You can now log in to your RescueBite NGO Dashboard and immediately begin serving families in need.</p>
+                
+                <!-- CTA Button -->
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/login" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #16a34a, #15803d); color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4); text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.3s ease;">
+                    Access NGO Dashboard
+                  </a>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+                <p style="font-size: 11px; line-height: 1.5; color: #94a3b8; margin: 0; text-align: center;">
+                  Thank you for partner-programming with RescueBite to reduce food waste and feed our communities.<br />
+                  If you have any questions, please contact our support team at <a href="mailto:support@rescuebite.com" style="color: #16a34a; text-decoration: none; font-weight: 600;">support@rescuebite.com</a>.
+                </p>
+              </div>
+
+              <!-- Footer -->
+              <p style="text-align: center; font-size: 11px; color: #94a3b8; margin-top: 20px;">
+                © 2026 RescueBite Platform. All rights reserved.
+              </p>
+            </div>
+          `
+        });
+      } catch (err) {
+        console.error('Failed to send NGO verification confirmation email:', err);
+      }
+    }
     
     const userObj = user.toObject();
     delete userObj.password;
