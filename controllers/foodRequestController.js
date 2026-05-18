@@ -1,9 +1,15 @@
 const FoodRequest = require('../models/FoodRequest');
+const User = require('../models/User');
 
 const createRequest = async (req, res, next) => {
   try {
     const { quantityNeeded } = req.body;
     if (!quantityNeeded) return res.status(400).json({ success: false, message: 'Quantity is required' });
+
+    const user = await User.findById(req.user.userId);
+    if (!user || (user.role === 'ngo' && !user.isVerified)) {
+      return res.status(403).json({ success: false, message: 'Your NGO account is pending admin verification.' });
+    }
 
     const request = await FoodRequest.create({
       ngoId: req.user.userId,

@@ -16,6 +16,7 @@ const donationSchema = new mongoose.Schema({
   donorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   acceptedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   isRecurring: { type: Boolean, default: false },
+  collectOtp: { type: String, default: null },
   impactDetails: {
     peopleFed: { type: Number },
     usedLocation: { type: String },

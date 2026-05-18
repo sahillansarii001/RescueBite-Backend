@@ -9,6 +9,7 @@ const {
   updateDonationStatus,
   deleteDonation,
   addImpactDetails,
+  sendCollectOtp,
 } = require('../controllers/donationController');
 
 router.post('/', protect, uploadSingle, createDonation);
@@ -17,5 +18,6 @@ router.get('/:id', getDonationById);
 router.put('/:id', protect, updateDonationStatus);
 router.put('/:id/impact', protect, addImpactDetails);
 router.delete('/:id', protect, deleteDonation);
+router.post('/:id/send-collect-otp', protect, sendCollectOtp);
 
 module.exports = router;

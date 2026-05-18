@@ -159,7 +159,7 @@ const sendOtp = async (req, res, next) => {
 
 const register = async (req, res, next) => {
   try {
-    const { name, email, password, role, location, language, donorType, address, mapLink, phone, otp } = req.body;
+    const { name, email, password, role, location, language, donorType, address, mapLink, phone, otp, websiteLink, ngoDocument } = req.body;
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -183,6 +183,9 @@ const register = async (req, res, next) => {
       if (!address) return res.status(400).json({ success: false, message: 'Address is required' });
       if (!mapLink) return res.status(400).json({ success: false, message: 'Google Maps link is required' });
       if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required' });
+      if (role === 'ngo' && !ngoDocument) {
+        return res.status(400).json({ success: false, message: 'NGO registration document is required' });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -196,6 +199,8 @@ const register = async (req, res, next) => {
       address,
       mapLink,
       phone,
+      websiteLink,
+      ngoDocument,
     };
     // Only set donorType for donor role to avoid enum validation error
     if (role === 'donor' && donorType) userData.donorType = donorType;
@@ -229,6 +234,9 @@ const register = async (req, res, next) => {
         address: user.address,
         mapLink: user.mapLink,
         phone: user.phone,
+        websiteLink: user.websiteLink,
+        ngoDocument: user.ngoDocument,
+        isVerified: user.isVerified,
       },
     });
   } catch (err) {
@@ -293,6 +301,9 @@ const login = async (req, res, next) => {
         address: user.address,
         mapLink: user.mapLink,
         phone: user.phone,
+        websiteLink: user.websiteLink,
+        ngoDocument: user.ngoDocument,
+        isVerified: user.isVerified,
       },
     });
   } catch (err) {
