@@ -4,7 +4,7 @@ const { protect, restrictTo } = require('../middleware/authMiddleware');
 const { upload } = require('../middleware/upload');
 const {
   getLeaderboard, getProfile, updateProfile, changePassword, getAllUsers,
-  adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser, adminVerifyNgo,
+  adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser, adminVerifyNgo, adminRejectNgo,
 } = require('../controllers/userController');
 
 router.get('/leaderboard', getLeaderboard);
@@ -20,5 +20,6 @@ router.put('/admin/:id', protect, restrictTo('admin'), adminUpdateUser);
 router.delete('/admin/:id', protect, restrictTo('admin'), adminDeleteUser);
 router.put('/admin/:id/reset-password', protect, restrictTo('admin'), adminResetPassword);
 router.put('/admin/:id/verify', protect, restrictTo('admin'), adminVerifyNgo);
+router.put('/admin/:id/reject', protect, restrictTo('admin'), adminRejectNgo);
 
 module.exports = router;

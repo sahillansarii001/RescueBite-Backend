@@ -39,6 +39,8 @@ const updateProfile = async (req, res, next) => {
     if (donorType) user.donorType = donorType;
     if (phone) user.phone = phone;
     if (address) user.address = address;
+    if (req.body.websiteLink !== undefined) user.websiteLink = req.body.websiteLink;
+    if (req.body.ngoDocument !== undefined) user.ngoDocument = req.body.ngoDocument;
     if (req.file && req.file.path) user.profilePic = req.file.path;
     await user.save({ validateBeforeSave: false });
     const userObj = user.toObject();
@@ -224,7 +226,78 @@ const adminVerifyNgo = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// Admin: reject an NGO (clear document & set unverified, notifying them via email)
+const adminRejectNgo = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (user.role !== 'ngo') return res.status(400).json({ success: false, message: 'Only NGOs can be rejected' });
+    
+    user.isVerified = false;
+    user.ngoDocument = null; // clear uploaded document
+    await user.save({ validateBeforeSave: false });
+
+    // Send rejection email to the NGO
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: '⚠️ Notice: NGO Verification Document Rejected',
+        message: `Dear ${user.name},\n\nWe are writing to inform you that your uploaded NGO registration document on RescueBite was reviewed by our administration team and unfortunately has been rejected.\n\nTo complete your NGO verification, please log in to your dashboard and upload a valid, clearly readable registration document.\n\nIf you have any questions, please reach out to support@rescuebite.com.\n\nBest regards,\nThe RescueBite Team`,
+        html: `
+          <div style="font-family: 'Outfit', 'Inter', sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background-color: #fffafb; border-radius: 24px; border: 1px solid #fee2e2; color: #1e293b;">
+            <!-- Header Brand -->
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: linear-gradient(135deg, #dc2626, #b91c1c); border-radius: 12px; color: #ffffff; font-weight: 800; font-size: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; margin-bottom: 8px;">R</div>
+              <h1 style="font-size: 24px; font-weight: 900; color: #7f1d1d; margin: 0; tracking: -0.025em;">RescueBite</h1>
+              <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #b91c1c; font-weight: 700; margin: 2px 0 0 0;">Food Security Platform</p>
+            </div>
+
+            <!-- Main Card -->
+            <div style="background-color: #ffffff; padding: 32px; border-radius: 20px; border: 1px solid #fee2e2; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+              <h2 style="font-size: 20px; font-weight: 800; color: #dc2626; margin-top: 0; margin-bottom: 16px; text-align: center;">⚠️ Document Verification Rejected</h2>
+              
+              <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 16px;">Dear <strong>${user.name}</strong>,</p>
+              
+              <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 20px;">We are writing to inform you that your uploaded NGO registration / verification document was reviewed by our team and unfortunately has been **rejected**.</p>
+              
+              <div style="background-color: #fff5f5; border-left: 4px solid #f87171; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="font-size: 13px; font-weight: 700; color: #991b1b; margin: 0 0 4px 0;">📋 Next Steps Required:</p>
+                <p style="font-size: 12px; color: #b91c1c; margin: 0; line-height: 1.6;">
+                  Your uploaded file has been cleared from our database. To proceed with unlocking your account, please log in to your RescueBite dashboard and upload a valid, clearly readable registration document (PDF or Image).
+                </p>
+              </div>
+
+              <!-- CTA Button -->
+              <div style="text-align: center; margin-bottom: 24px;">
+                <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/login" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #dc2626, #b91c1c); color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4); text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.3s ease;">
+                  Log In & Re-Upload Document
+                </a>
+              </div>
+
+              <hr style="border: 0; border-top: 1px solid #fee2e2; margin: 24px 0;" />
+              <p style="font-size: 11px; line-height: 1.5; color: #94a3b8; margin: 0; text-align: center;">
+                If you believe this was an error or have questions about the upload requirements, please contact our support team at <a href="mailto:support@rescuebite.com" style="color: #dc2626; text-decoration: none; font-weight: 600;">support@rescuebite.com</a>.
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <p style="text-align: center; font-size: 11px; color: #94a3b8; margin-top: 20px;">
+              © 2026 RescueBite Platform. All rights reserved.
+            </p>
+          </div>
+        `
+      });
+    } catch (err) {
+      console.error('Failed to send NGO rejection email:', err);
+    }
+
+    const userObj = user.toObject();
+    delete userObj.password;
+    return res.status(200).json({ success: true, user: userObj, message: 'NGO verification document rejected and reset successfully' });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getLeaderboard, getProfile, updateProfile, changePassword, getAllUsers,
-  adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser, adminVerifyNgo,
+  adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser, adminVerifyNgo, adminRejectNgo,
 };
