@@ -301,7 +301,130 @@ const adminRejectNgo = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// Coordinate Extractor Helper
+const extractCoordinates = (mapLink, locationName = '') => {
+  const regex = /@?(-?\d+\.\d+),\s*(-?\d+\.\d+)/;
+  const match = (mapLink || '').match(regex);
+  if (match) {
+    const lat = parseFloat(match[1]);
+    const lon = parseFloat(match[2]);
+    if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+      return { latitude: lat, longitude: lon };
+    }
+  }
+
+  const simpleMatch = (mapLink || '').match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+  if (simpleMatch) {
+    const lat = parseFloat(simpleMatch[1]);
+    const lon = parseFloat(simpleMatch[2]);
+    if (!isNaN(lat) && !isNaN(lon)) {
+      return { latitude: lat, longitude: lon };
+    }
+  }
+
+  // Fallback based on Location Name
+  const loc = (locationName || '').toLowerCase();
+  if (loc.includes('powai') || loc.includes('iit')) {
+    return { latitude: 19.1334, longitude: 72.9133 };
+  } else if (loc.includes('andheri')) {
+    return { latitude: 19.1197, longitude: 72.8468 };
+  } else if (loc.includes('bandra')) {
+    return { latitude: 19.0600, longitude: 72.8311 };
+  } else if (loc.includes('colaba')) {
+    return { latitude: 18.9067, longitude: 72.8147 };
+  } else if (loc.includes('dadar')) {
+    return { latitude: 19.0178, longitude: 72.8478 };
+  } else if (loc.includes('goregaon')) {
+    return { latitude: 19.1663, longitude: 72.8490 };
+  } else if (loc.includes('borivali')) {
+    return { latitude: 19.2307, longitude: 72.8567 };
+  } else if (loc.includes('thane')) {
+    return { latitude: 19.2183, longitude: 72.9781 };
+  } else if (loc.includes('vashi') || loc.includes('navi')) {
+    return { latitude: 19.0745, longitude: 73.0012 };
+  } else if (loc.includes('kurla')) {
+    return { latitude: 19.0726, longitude: 72.8845 };
+  }
+
+  // Default to center of Mumbai (Andheri/Powai region) with deterministic perturbation
+  const hash = (locationName || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const pertLat = ((hash % 100) / 1000) - 0.05;
+  const pertLon = (((hash * 17) % 100) / 1000) - 0.05;
+  return { 
+    latitude: 19.1197 + pertLat, 
+    longitude: 72.8468 + pertLon 
+  };
+};
+
+// Haversine Distance Formula
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in km
+};
+
+// Endpoint Controller
+const getNearestCounterparts = async (req, res, next) => {
+  try {
+    const currentUser = await User.findById(req.user.userId);
+    if (!currentUser) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const currentUserCoords = extractCoordinates(currentUser.mapLink, currentUser.location);
+
+    let query = {};
+    if (currentUser.role === 'donor') {
+      query = { role: 'ngo', isVerified: true };
+    } else if (currentUser.role === 'ngo') {
+      query = { role: 'donor' };
+    } else {
+      return res.status(400).json({ success: false, message: 'Only donors or NGOs can query nearest partners' });
+    }
+
+    const counterparts = await User.find(query).select('name email phone location address mapLink donorType profilePic isVerified');
+
+    const mapped = counterparts.map(c => {
+      const coords = extractCoordinates(c.mapLink, c.location);
+      const distance = getDistance(
+        currentUserCoords.latitude,
+        currentUserCoords.longitude,
+        coords.latitude,
+        coords.longitude
+      );
+      return {
+        _id: c._id,
+        name: c.name,
+        email: c.email,
+        phone: c.phone,
+        location: c.location,
+        address: c.address,
+        mapLink: c.mapLink,
+        donorType: c.donorType,
+        profilePic: c.profilePic,
+        isVerified: c.isVerified,
+        coordinates: coords,
+        distance: parseFloat(distance.toFixed(2))
+      };
+    });
+
+    // Sort by distance ascending
+    mapped.sort((a, b) => a.distance - b.distance);
+
+    return res.status(200).json({
+      success: true,
+      currentUserCoords,
+      nearest: mapped
+    });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getLeaderboard, getProfile, updateProfile, changePassword, getAllUsers,
   adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser, adminVerifyNgo, adminRejectNgo,
+  getNearestCounterparts,
 };

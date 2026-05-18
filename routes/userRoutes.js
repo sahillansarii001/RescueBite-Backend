@@ -5,10 +5,12 @@ const { upload } = require('../middleware/upload');
 const {
   getLeaderboard, getProfile, updateProfile, changePassword, getAllUsers,
   adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser, adminVerifyNgo, adminRejectNgo,
+  getNearestCounterparts,
 } = require('../controllers/userController');
 
 router.get('/leaderboard', getLeaderboard);
 router.get('/profile', protect, getProfile);
+router.get('/nearest', protect, getNearestCounterparts);
 router.put('/profile', protect, upload.single('profilePic'), updateProfile);
 router.put('/change-password', protect, changePassword);
 
