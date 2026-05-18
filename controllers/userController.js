@@ -423,6 +423,7 @@ const getNearestCounterparts = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       currentUserCoords,
+      currentUserAddress: currentUser.address,
       nearest: mapped
     });
   } catch (err) { next(err); }
