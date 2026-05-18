@@ -213,6 +213,10 @@ const register = async (req, res, next) => {
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
+    // Trigger real-time SSE registration broadcast
+    const { broadcastNewUser } = require('../utils/sse');
+    broadcastNewUser(user);
+
     if (role !== 'admin') {
       await Otp.deleteMany({ email });
     }

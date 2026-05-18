@@ -85,6 +85,11 @@ const adminCreateUser = async (req, res, next) => {
     const userData = { name, email, password: hashedPassword, role, location, address, mapLink, phone, language };
     if (role === 'donor') userData.donorType = donorType || 'individual';
     const user = await User.create(userData);
+    
+    // Trigger real-time SSE registration broadcast
+    const { broadcastNewUser } = require('../utils/sse');
+    broadcastNewUser(user);
+
     const userObj = user.toObject();
     delete userObj.password;
     return res.status(201).json({ success: true, user: userObj });

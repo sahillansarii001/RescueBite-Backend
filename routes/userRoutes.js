@@ -7,7 +7,9 @@ const {
   adminCreateUser, adminDeleteUser, adminUpdateUser, adminResetPassword, adminGetUser, adminVerifyNgo, adminRejectNgo,
   getNearestCounterparts,
 } = require('../controllers/userController');
+const { registerStream } = require('../utils/sse');
 
+router.get('/register-stream', registerStream);
 router.get('/leaderboard', getLeaderboard);
 router.get('/profile', protect, getProfile);
 router.get('/nearest', protect, getNearestCounterparts);
