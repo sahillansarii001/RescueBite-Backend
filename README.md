@@ -2,14 +2,14 @@
 
 Welcome to the backend API server for **RescueBite** — a hyper-local, gamified, and real-time surplus food redistribution platform. 
 
-This Express and Node.js application manages database mappings via Mongoose, handles JWT-based user authentication, triggers OTP verification communications via Resend SMTP, integrates Cloudinary file uploads, and structures administrative aggregations.
+This Express and Node.js application manages database mappings via Mongoose, handles JWT-based user authentication, triggers OTP verification communications via dynamic email controllers, integrates Cloudinary file uploads, and structures administrative aggregations.
 
 ---
 
 ## 🚀 Key Server-Side Features
 
 *   **Secure Authentication Flow:**
-    *   Single-channel registration verification OTP emails sent via Resend SMTP with 10-minute self-expiring validation windows.
+    *   Single-channel registration verification OTP emails sent via the secure **Gmail HTTP API (Google OAuth2 over port 443)** or Nodemailer SMTP fallback with 10-minute self-expiring validation windows.
     *   3-step password recovery (Forgot Password $\rightarrow$ Verify OTP $\rightarrow$ Reset Password).
     *   JWT Token Rotation: Short-lived access tokens (15 minutes) with secure, long-lived refresh tokens (30 days) to enable secure sessions.
     *   Dedicated environment-level credential authentication bypassing standard database checks for system administrators.
@@ -47,7 +47,7 @@ Server/
 ├── server.js                       # Application entrypoint
 ├── sync.js                         # Database utility for mock syncs
 └── utils/
-    └── sendEmail.js                # NodeMailer Resend SMTP config
+    └── sendEmail.js                # NodeMailer and Google OAuth2 email config
 ```
 
 ---
@@ -61,10 +61,10 @@ npm install
 ```
 
 ### 2. Configure Environment Variables
-Create a `.env` file in the root of the `/Server` folder and populate it with the following configuration keys:
+Create a `.env` file in the root of the `/Server` folder and populate it with the following configuration keys matching the application setup:
 ```env
 PORT=5000
-MONGO_URI=mongodb://localhost:27017/rescuebite     # Local MongoDB or cloud URL
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/rescuebite   # MongoDB Atlas Connection
 JWT_SECRET=your_super_secure_jwt_access_secret
 JWT_REFRESH_SECRET=your_super_secure_jwt_refresh_secret
 
@@ -72,9 +72,14 @@ JWT_REFRESH_SECRET=your_super_secure_jwt_refresh_secret
 ADMIN_EMAIL=admin@rescuebite.com
 ADMIN_PASSWORD=your_highly_secure_admin_password
 
-# Resend SMTP Email Integration (OTP Deliveries)
-MAIL_PASS=re_your_resend_api_key_here
-FROM_EMAIL=otp@yourverifieddomain.com
+# Primary: Gmail API OAuth2 (Bypasses SMTP cloud blocks)
+MAIL_USER=sahilansari9967747153@gmail.com
+OAUTH_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+OAUTH_CLIENT_SECRET=your_google_client_secret
+OAUTH_REFRESH_TOKEN=your_google_oauth_refresh_token
+
+# Fallback: Nodemailer SMTP Gmail configuration
+MAIL_PASS=your_gmail_app_password  # Used if OAuth credentials are not provided or fail
 
 # Cloudinary Integration (Image Uploads)
 CLOUDINARY_CLOUD_NAME=your_cloudinary_name
