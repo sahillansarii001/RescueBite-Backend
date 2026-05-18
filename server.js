@@ -9,6 +9,7 @@ const userRoutes = require("./routes/userRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const foodRequestRoutes = require("./routes/foodRequestRoutes");
+const newsletterRoutes = require("./routes/newsletterRoutes");
 
 connectDB();
 
@@ -34,6 +35,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/requests", foodRequestRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
