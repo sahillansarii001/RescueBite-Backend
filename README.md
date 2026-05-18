@@ -73,7 +73,7 @@ ADMIN_EMAIL=admin@rescuebite.com
 ADMIN_PASSWORD=your_highly_secure_admin_password
 
 # Primary: Gmail API OAuth2 (Bypasses SMTP cloud blocks)
-MAIL_USER=sahilansari9967747153@gmail.com
+MAIL_USER=your_gmail_address@gmail.com
 OAUTH_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 OAUTH_CLIENT_SECRET=your_google_client_secret
 OAUTH_REFRESH_TOKEN=your_google_oauth_refresh_token
