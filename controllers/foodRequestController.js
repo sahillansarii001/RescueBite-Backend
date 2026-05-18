@@ -46,4 +46,29 @@ const fulfillRequest = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { createRequest, getActiveRequests, getMyRequests, fulfillRequest };
+const getAllRequests = async (req, res, next) => {
+  try {
+    const requests = await FoodRequest.find()
+      .populate('ngoId', 'name location email phone')
+      .populate('fulfilledBy', 'name email phone donorType')
+      .sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, requests });
+  } catch (err) { next(err); }
+};
+
+const deleteRequest = async (req, res, next) => {
+  try {
+    const request = await FoodRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
+
+    // Allow Admin or the NGO who created the request to delete it
+    if (req.user.role !== 'admin' && request.ngoId.toString() !== req.user.userId) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    await request.deleteOne();
+    return res.status(200).json({ success: true, message: 'Request deleted successfully' });
+  } catch (err) { next(err); }
+};
+
+module.exports = { createRequest, getActiveRequests, getMyRequests, fulfillRequest, getAllRequests, deleteRequest };
