@@ -103,7 +103,7 @@ const getAllDonations = async (req, res, next) => {
     if (req.query.acceptedBy) filter.acceptedBy = req.query.acceptedBy;
 
     const donations = await Donation.find(filter)
-      .populate('donorId', 'name email donorType location')
+      .populate('donorId', 'name email phone donorType location address mapLink')
       .populate('acceptedBy', 'name email phone location address mapLink')
       .sort({ createdAt: -1 });
 
@@ -116,7 +116,7 @@ const getAllDonations = async (req, res, next) => {
 const getDonationById = async (req, res, next) => {
   try {
     const donation = await Donation.findById(req.params.id)
-      .populate('donorId', 'name email donorType location')
+      .populate('donorId', 'name email phone donorType location address mapLink')
       .populate('acceptedBy', 'name email phone location address mapLink');
 
     if (!donation) {
@@ -156,6 +156,38 @@ const updateDonationStatus = async (req, res, next) => {
         return res.status(400).json({ success: false, message: 'Only pending donations can be accepted' });
       }
       donation.acceptedBy = userId;
+
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      donation.collectOtp = otpCode;
+
+      const donor = await User.findById(donation.donorId);
+      if (donor) {
+        if (process.env.OAUTH_REFRESH_TOKEN || process.env.MAIL_PASS) {
+          try {
+            await sendEmail({
+              email: donor.email,
+              subject: 'RescueBite - Food Collection Verification Code',
+              message: `The NGO ${user.name} is ready to collect the food donation "${donation.foodName}". Please share this 6-digit OTP code with them to verify collection: ${otpCode}`,
+              html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                      <h2 style="color: #15803d; text-align: center;">Food Collection OTP</h2>
+                      <p style="font-size: 16px; color: #475569;">Hello ${donor.name},</p>
+                      <p style="font-size: 16px; color: #475569;">The NGO <strong>${user.name}</strong> has accepted your food donation <strong>"${donation.foodName}"</strong>.</p>
+                      <p style="font-size: 16px; color: #475569;">Please share this 6-digit one-time password (OTP) with them when they collect the food:</p>
+                      <div style="background-color: #f0fdf4; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #15803d;">${otpCode}</span>
+                      </div>
+                      <p style="font-size: 14px; color: #64748b;">This OTP code ensures that only authorized NGOs collect your donated food.</p>
+                      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
+                      <p style="font-size: 12px; color: #94a3b8; text-align: center;">Thank you for your generous contribution to RescueBite.</p>
+                     </div>`
+            });
+          } catch (emailErr) {
+            console.error('Failed to send collection OTP email on donation acceptance:', emailErr);
+          }
+        } else {
+          console.log(`\n\n=== COLLECTION OTP EMAIL BYPASSED ===\nTo Donor: ${donor.email}\nNGO: ${user.name}\nOTP: ${otpCode}\n=======================================\n\n`);
+        }
+      }
     } else if (status === 'collected') {
       if (role !== 'ngo') {
         return res.status(403).json({ success: false, message: 'Only NGOs can mark as collected' });
@@ -206,7 +238,7 @@ const updateDonationStatus = async (req, res, next) => {
 
     // Return populated donation
     const populated = await Donation.findById(donation._id)
-      .populate('donorId', 'name email donorType location')
+      .populate('donorId', 'name email phone donorType location address mapLink')
       .populate('acceptedBy', 'name email phone location address mapLink');
 
     return res.status(200).json({ success: true, donation: populated });
@@ -271,7 +303,7 @@ const addImpactDetails = async (req, res, next) => {
     await donation.save();
     
     const populated = await Donation.findById(donation._id)
-      .populate('donorId', 'name email donorType location')
+      .populate('donorId', 'name email phone donorType location address mapLink')
       .populate('acceptedBy', 'name email phone location address mapLink');
       
     return res.status(200).json({ success: true, donation: populated, message: 'Impact details added successfully' });
