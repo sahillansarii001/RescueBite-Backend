@@ -41,6 +41,8 @@ const createDonation = async (req, res, next) => {
     // Find all verified NGOs
     const verifiedNgos = await User.find({ role: 'ngo', isVerified: true });
 
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+
     // Send email notification to each verified NGO
     for (const ngo of verifiedNgos) {
       try {
@@ -72,7 +74,7 @@ const createDonation = async (req, res, next) => {
                 </tr>` : ''}
               </table>
               <p>Please log in to your RescueBite dashboard to accept this donation before it is claimed or expires.</p>
-              <p style="margin-top: 25px;"><a href="http://localhost:3000/login" style="background-color: #2e7d32; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 2px 4px rgba(46,125,50,0.2);">Go to Dashboard</a></p>
+              <p style="margin-top: 25px;"><a href="${clientUrl}/login" style="background-color: #2e7d32; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 2px 4px rgba(46,125,50,0.2);">Go to Dashboard</a></p>
               <hr style="border: 0; border-top: 1px solid #e0e0e0; margin-top: 30px;" />
               <p style="font-size: 11px; color: #757575;">This is an automated notification from RescueBite. Please do not reply to this email.</p>
             </div>

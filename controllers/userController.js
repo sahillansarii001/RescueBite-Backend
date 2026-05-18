@@ -159,6 +159,8 @@ const adminVerifyNgo = async (req, res, next) => {
     user.isVerified = !user.isVerified; // toggle
     await user.save({ validateBeforeSave: false });
     
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+
     // Send successful verification email if activated
     if (user.isVerified) {
       try {
@@ -196,7 +198,7 @@ const adminVerifyNgo = async (req, res, next) => {
                 
                 <!-- CTA Button -->
                 <div style="text-align: center; margin-bottom: 24px;">
-                  <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/login" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #16a34a, #15803d); color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4); text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.3s ease;">
+                  <a href="${clientUrl}/login" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #16a34a, #15803d); color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4); text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.3s ease;">
                     Access NGO Dashboard
                   </a>
                 </div>
@@ -237,6 +239,8 @@ const adminRejectNgo = async (req, res, next) => {
     user.ngoDocument = null; // clear uploaded document
     await user.save({ validateBeforeSave: false });
 
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:3000').replace(/\/+$/, '');
+
     // Send rejection email to the NGO
     try {
       await sendEmail({
@@ -269,7 +273,7 @@ const adminRejectNgo = async (req, res, next) => {
 
               <!-- CTA Button -->
               <div style="text-align: center; margin-bottom: 24px;">
-                <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/login" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #dc2626, #b91c1c); color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4); text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.3s ease;">
+                <a href="${clientUrl}/login" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #dc2626, #b91c1c); color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4); text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.3s ease;">
                   Log In & Re-Upload Document
                 </a>
               </div>
