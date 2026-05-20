@@ -437,67 +437,119 @@ export const adminRejectNgo = async (req, res, next) => {
 };
 
 // Coordinate Extractor Helper
-const extractCoordinates = (mapLink, locationName = "") => {
-  const regex = /@?(-?\d+\.\d+),\s*(-?\d+\.\d+)/;
-  const match = (mapLink || "").match(regex);
+// Coordinate Extractor Helper
+const geocodeCache = new Map();
+
+const extractCoordinatesFromUrl = async (url) => {
+  if (!url || typeof url !== "string") return null;
+
+  let targetUrl = url;
+
+  // Resolve short URLs if it starts with maps.app.goo.gl or goo.gl/maps
+  if (url.includes("maps.app.goo.gl") || url.includes("goo.gl/maps")) {
+    try {
+      const response = await fetch(url, {
+        method: "HEAD",
+        redirect: "manual",
+        headers: { 'User-Agent': 'RescueBite/1.0' }
+      });
+      const redirectUrl = response.headers.get("location");
+      if (redirectUrl) {
+        targetUrl = redirectUrl;
+      }
+    } catch (err) {
+      console.error("Failed to resolve short map link:", url, err);
+    }
+  }
+
+  // Try to match standard coordinates patterns in URL
+  // Pattern 1: @lat,lng
+  let match = targetUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (match) {
+    return { latitude: parseFloat(match[1]), longitude: parseFloat(match[2]) };
+  }
+
+  // Pattern 2: q=lat,lng
+  match = targetUrl.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (match) {
+    return { latitude: parseFloat(match[1]), longitude: parseFloat(match[2]) };
+  }
+
+  // Pattern 3: place/lat,lng or place/lat+lng
+  match = targetUrl.match(/\/place\/(-?\d+\.\d+)(?:,|\+)(-?\d+\.\d+)/);
+  if (match) {
+    return { latitude: parseFloat(match[1]), longitude: parseFloat(match[2]) };
+  }
+
+  // Pattern 4: ll=lat,lng
+  match = targetUrl.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (match) {
+    return { latitude: parseFloat(match[1]), longitude: parseFloat(match[2]) };
+  }
+
+  // Pattern 5: Any sequence of lat/lng in the URL path (e.g. /daddr=lat,lng or saddr=lat,lng)
+  match = targetUrl.match(/(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (match) {
     const lat = parseFloat(match[1]);
-    const lon = parseFloat(match[2]);
-    if (
-      !isNaN(lat) &&
-      !isNaN(lon) &&
-      lat >= -90 &&
-      lat <= 90 &&
-      lon >= -180 &&
-      lon <= 180
-    ) {
-      return { latitude: lat, longitude: lon };
+    const lng = parseFloat(match[2]);
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      return { latitude: lat, longitude: lng };
     }
   }
 
-  const simpleMatch = (mapLink || "").match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
-  if (simpleMatch) {
-    const lat = parseFloat(simpleMatch[1]);
-    const lon = parseFloat(simpleMatch[2]);
-    if (!isNaN(lat) && !isNaN(lon)) {
-      return { latitude: lat, longitude: lon };
+  return null;
+};
+
+const getCoordinates = async (address, locationName = "", mapLink = "") => {
+  if (mapLink && geocodeCache.has(mapLink)) {
+    return geocodeCache.get(mapLink);
+  }
+
+  if (mapLink) {
+    const extractedCoords = await extractCoordinatesFromUrl(mapLink);
+    if (extractedCoords) {
+      geocodeCache.set(mapLink, extractedCoords);
+      return extractedCoords;
     }
   }
 
-  // Fallback based on Location Name
-  const loc = (locationName || "").toLowerCase();
-  if (loc.includes("powai") || loc.includes("iit")) {
-    return { latitude: 19.1334, longitude: 72.9133 };
-  } else if (loc.includes("andheri")) {
-    return { latitude: 19.1197, longitude: 72.8468 };
-  } else if (loc.includes("bandra")) {
-    return { latitude: 19.06, longitude: 72.8311 };
-  } else if (loc.includes("colaba")) {
-    return { latitude: 18.9067, longitude: 72.8147 };
-  } else if (loc.includes("dadar")) {
-    return { latitude: 19.0178, longitude: 72.8478 };
-  } else if (loc.includes("goregaon")) {
-    return { latitude: 19.1663, longitude: 72.849 };
-  } else if (loc.includes("borivali")) {
-    return { latitude: 19.2307, longitude: 72.8567 };
-  } else if (loc.includes("thane")) {
-    return { latitude: 19.2183, longitude: 72.9781 };
-  } else if (loc.includes("vashi") || loc.includes("navi")) {
-    return { latitude: 19.0745, longitude: 73.0012 };
-  } else if (loc.includes("kurla")) {
-    return { latitude: 19.0726, longitude: 72.8845 };
+  const query = `${address} ${locationName}`.trim();
+  if (!query) return { latitude: 19.1197, longitude: 72.8468 }; // Default Mumbai
+
+  if (geocodeCache.has(query)) {
+    return geocodeCache.get(query);
   }
 
-  // Default to center of Mumbai (Andheri/Powai region) with deterministic perturbation
-  const hash = (locationName || "")
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+      { headers: { 'User-Agent': 'RescueBite/1.0' } }
+    );
+    const data = await res.json();
+    if (data && data.length > 0) {
+      const coords = {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
+      };
+      geocodeCache.set(query, coords);
+      return coords;
+    }
+  } catch (err) {
+    console.error("Geocoding failed for:", query);
+  }
+
+  // Fallback to random nearby if geocoding fails
+  const hash = query
     .split("")
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const pertLat = (hash % 100) / 1000 - 0.05;
   const pertLon = ((hash * 17) % 100) / 1000 - 0.05;
-  return {
+  const coords = {
     latitude: 19.1197 + pertLat,
     longitude: 72.8468 + pertLon,
   };
+  geocodeCache.set(query, coords);
+  return coords;
 };
 
 // Haversine Distance Formula
@@ -515,6 +567,22 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * c; // Distance in km
 };
 
+// OSRM Driving Distance Formula
+const getDrivingDistance = async (lat1, lon1, lat2, lon2) => {
+  try {
+    const url = `http://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'RescueBite/1.0' } });
+    const data = await res.json();
+    if (data && data.routes && data.routes.length > 0) {
+      const distanceInKm = data.routes[0].distance / 1000;
+      return parseFloat(distanceInKm.toFixed(2));
+    }
+  } catch (err) {
+    console.error("OSRM driving distance calculation failed, using Haversine fallback:", err);
+  }
+  return parseFloat(getDistance(lat1, lon1, lat2, lon2).toFixed(2));
+};
+
 // Endpoint Controller
 export const getNearestCounterparts = async (req, res, next) => {
   try {
@@ -524,9 +592,10 @@ export const getNearestCounterparts = async (req, res, next) => {
         .status(404)
         .json({ success: false, message: "User not found" });
 
-    const currentUserCoords = extractCoordinates(
-      currentUser.mapLink,
+    const currentUserCoords = await getCoordinates(
+      currentUser.address,
       currentUser.location,
+      currentUser.mapLink
     );
 
     let query = {};
@@ -544,16 +613,16 @@ export const getNearestCounterparts = async (req, res, next) => {
     }
 
     const counterparts = await User.find(query).select(
-      "name email phone location address mapLink donorType profilePic isVerified",
+      "name email phone location address mapLink donorType profilePic isVerified"
     );
 
-    const mapped = counterparts.map((c) => {
-      const coords = extractCoordinates(c.mapLink, c.location);
-      const distance = getDistance(
+    const mappedPromises = counterparts.map(async (c) => {
+      const coords = await getCoordinates(c.address, c.location, c.mapLink);
+      const distance = await getDrivingDistance(
         currentUserCoords.latitude,
         currentUserCoords.longitude,
         coords.latitude,
-        coords.longitude,
+        coords.longitude
       );
       return {
         _id: c._id,
@@ -567,9 +636,11 @@ export const getNearestCounterparts = async (req, res, next) => {
         profilePic: c.profilePic,
         isVerified: c.isVerified,
         coordinates: coords,
-        distance: parseFloat(distance.toFixed(2)),
+        distance,
       };
     });
+
+    const mapped = await Promise.all(mappedPromises);
 
     // Sort by distance ascending
     mapped.sort((a, b) => a.distance - b.distance);
