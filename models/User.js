@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ["donor", "ngo", "admin"], required: true },
   points: { type: Number, default: 0 },
   badges: { type: [String], default: [] },
-  language: { type: String, enum: ["en", "hi", "mr"], default: "en" },
+
   location: {
     type: String,
     required: function () {

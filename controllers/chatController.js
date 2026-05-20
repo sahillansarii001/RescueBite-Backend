@@ -13,7 +13,7 @@ There are THREE user roles on the platform:
 - Earns **points** for completed donations (10 points per donation completion).
 - Can accept **NGO Food Requests** — when an NGO posts a request for food, donors can volunteer to fulfill it.
 - Appears on the **Leaderboard** ranked by points.
-- Has a profile with: name, email, phone, location, address, mapLink, profilePic, donorType, language.
+- Has a profile with: name, email, phone, location, address, mapLink, profilePic, donorType.
 
 ### NGO (role: "ngo")
 - Non-governmental organizations that collect and distribute food to beneficiaries.

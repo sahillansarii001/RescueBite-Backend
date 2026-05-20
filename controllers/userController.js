@@ -31,7 +31,7 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, email, location, language, donorType, phone, address } =
+    const { name, email, location, donorType, phone, address } =
       req.body;
     const user = await User.findById(req.user.userId);
     if (!user)
@@ -50,7 +50,7 @@ export const updateProfile = async (req, res, next) => {
 
     if (name) user.name = name;
     if (location) user.location = location;
-    if (language) user.language = language;
+
     if (donorType) user.donorType = donorType;
     if (phone) user.phone = phone;
     if (address) user.address = address;
@@ -123,7 +123,6 @@ export const adminCreateUser = async (req, res, next) => {
       address,
       mapLink,
       phone,
-      language,
       donorType,
     } = req.body;
     const existing = await User.findOne({ email });
@@ -141,7 +140,7 @@ export const adminCreateUser = async (req, res, next) => {
       address,
       mapLink,
       phone,
-      language,
+
     };
     if (role === "donor") userData.donorType = donorType || "individual";
     const user = await User.create(userData);
