@@ -1,8 +1,8 @@
-const Donation = require("../models/Donation");
-const User = require("../models/User");
-const sendEmail = require("../utils/sendEmail");
+import Donation from "../models/Donation.js";
+import User from "../models/User.js";
+import sendEmail from "../utils/sendEmail.js";
 
-const createDonation = async (req, res, next) => {
+export const createDonation = async (req, res, next) => {
   try {
     const { userId } = req.user;
     const {
@@ -116,7 +116,7 @@ const createDonation = async (req, res, next) => {
   }
 };
 
-const getAllDonations = async (req, res, next) => {
+export const getAllDonations = async (req, res, next) => {
   try {
     const filter = {};
     if (req.query.status) filter.status = req.query.status;
@@ -139,7 +139,7 @@ const getAllDonations = async (req, res, next) => {
   }
 };
 
-const getDonationById = async (req, res, next) => {
+export const getDonationById = async (req, res, next) => {
   try {
     const donation = await Donation.findById(req.params.id)
       .populate(
@@ -160,7 +160,7 @@ const getDonationById = async (req, res, next) => {
   }
 };
 
-const updateDonationStatus = async (req, res, next) => {
+export const updateDonationStatus = async (req, res, next) => {
   try {
     const donation = await Donation.findById(req.params.id);
     if (!donation) {
@@ -340,7 +340,7 @@ const updateDonationStatus = async (req, res, next) => {
   }
 };
 
-const deleteDonation = async (req, res, next) => {
+export const deleteDonation = async (req, res, next) => {
   try {
     const donation = await Donation.findById(req.params.id);
     if (!donation) {
@@ -379,7 +379,7 @@ const deleteDonation = async (req, res, next) => {
   }
 };
 
-const addImpactDetails = async (req, res, next) => {
+export const addImpactDetails = async (req, res, next) => {
   try {
     const donation = await Donation.findById(req.params.id);
     if (!donation)
@@ -439,7 +439,7 @@ const addImpactDetails = async (req, res, next) => {
   }
 };
 
-const sendCollectOtp = async (req, res, next) => {
+export const sendCollectOtp = async (req, res, next) => {
   try {
     const donation = await Donation.findById(req.params.id);
     if (!donation) {
@@ -540,14 +540,4 @@ const sendCollectOtp = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-module.exports = {
-  createDonation,
-  getAllDonations,
-  getDonationById,
-  updateDonationStatus,
-  deleteDonation,
-  addImpactDetails,
-  sendCollectOtp,
 };

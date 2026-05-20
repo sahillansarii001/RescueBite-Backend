@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const { protect, restrictTo } = require("../middleware/authMiddleware");
-const { upload } = require("../middleware/upload");
-const {
+import { protect, restrictTo } from "../middleware/authMiddleware.js";
+import { upload } from "../middleware/upload.js";
+import {
   getLeaderboard,
   getProfile,
   updateProfile,
@@ -16,8 +16,8 @@ const {
   adminVerifyNgo,
   adminRejectNgo,
   getNearestCounterparts,
-} = require("../controllers/userController");
-const { registerStream } = require("../utils/sse");
+} from "../controllers/userController.js";
+import { registerStream } from "../utils/sse.js";
 
 router.get("/register-stream", registerStream);
 router.get("/leaderboard", getLeaderboard);
@@ -41,4 +41,4 @@ router.put(
 router.put("/admin/:id/verify", protect, restrictTo("admin"), adminVerifyNgo);
 router.put("/admin/:id/reject", protect, restrictTo("admin"), adminRejectNgo);
 
-module.exports = router;
+export default router;

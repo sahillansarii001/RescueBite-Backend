@@ -1,15 +1,16 @@
-const express = require("express");
-const cors = require("cors");
-require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import "dotenv/config";
 
-const connectDB = require("./config/db");
-const authRoutes = require("./routes/authRoutes");
-const donationRoutes = require("./routes/donationRoutes");
-const userRoutes = require("./routes/userRoutes");
-const analyticsRoutes = require("./routes/analyticsRoutes");
-const contactRoutes = require("./routes/contactRoutes");
-const foodRequestRoutes = require("./routes/foodRequestRoutes");
-const newsletterRoutes = require("./routes/newsletterRoutes");
+import connectDB from "./config/db.js";
+import authRoutes from "./routes/authRoutes.js";
+import donationRoutes from "./routes/donationRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
+import foodRequestRoutes from "./routes/foodRequestRoutes.js";
+import newsletterRoutes from "./routes/newsletterRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 connectDB();
 
@@ -36,6 +37,7 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/requests", foodRequestRoutes);
 app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });

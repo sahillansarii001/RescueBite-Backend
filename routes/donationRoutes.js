@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const { protect } = require("../middleware/authMiddleware");
-const { uploadSingle } = require("../middleware/upload");
-const {
+import { protect } from "../middleware/authMiddleware.js";
+import { uploadSingle } from "../middleware/upload.js";
+import {
   createDonation,
   getAllDonations,
   getDonationById,
@@ -10,7 +10,7 @@ const {
   deleteDonation,
   addImpactDetails,
   sendCollectOtp,
-} = require("../controllers/donationController");
+} from "../controllers/donationController.js";
 
 router.post("/", protect, uploadSingle, createDonation);
 router.get("/", getAllDonations);
@@ -20,4 +20,4 @@ router.put("/:id/impact", protect, addImpactDetails);
 router.delete("/:id", protect, deleteDonation);
 router.post("/:id/send-collect-otp", protect, sendCollectOtp);
 
-module.exports = router;
+export default router;

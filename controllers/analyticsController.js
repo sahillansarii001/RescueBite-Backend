@@ -1,7 +1,7 @@
-const Donation = require("../models/Donation");
-const User = require("../models/User");
+import Donation from "../models/Donation.js";
+import User from "../models/User.js";
 
-const getAnalytics = async (req, res, next) => {
+export const getAnalytics = async (req, res, next) => {
   try {
     const now = new Date();
     const thirtyDaysAgo = new Date(now);
@@ -81,5 +81,3 @@ const getAnalytics = async (req, res, next) => {
     next(err);
   }
 };
-
-module.exports = { getAnalytics };

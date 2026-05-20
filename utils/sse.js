@@ -1,6 +1,6 @@
 let clients = [];
 
-const registerStream = (req, res) => {
+export const registerStream = (req, res) => {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
@@ -22,7 +22,7 @@ const registerStream = (req, res) => {
   });
 };
 
-const broadcastNewUser = (user) => {
+export const broadcastNewUser = (user) => {
   const data = JSON.stringify({
     _id: user._id,
     name: user.name,
@@ -37,9 +37,4 @@ const broadcastNewUser = (user) => {
       console.error("Failed to write to SSE client:", err.message);
     }
   });
-};
-
-module.exports = {
-  registerStream,
-  broadcastNewUser,
 };

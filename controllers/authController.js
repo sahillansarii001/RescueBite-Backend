@@ -1,8 +1,9 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const Otp = require("../models/Otp");
-const sendEmail = require("../utils/sendEmail");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import Otp from "../models/Otp.js";
+import sendEmail from "../utils/sendEmail.js";
+import { broadcastNewUser } from "../utils/sse.js";
 
 const generateToken = (user) =>
   jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, {
@@ -16,7 +17,7 @@ const generateRefreshToken = (user) =>
     { expiresIn: "30d" },
   );
 
-const forgotPassword = async (req, res, next) => {
+export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -78,7 +79,7 @@ const forgotPassword = async (req, res, next) => {
   }
 };
 
-const verifyOtp = async (req, res, next) => {
+export const verifyOtp = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp) {
@@ -102,7 +103,7 @@ const verifyOtp = async (req, res, next) => {
   }
 };
 
-const resetPassword = async (req, res, next) => {
+export const resetPassword = async (req, res, next) => {
   try {
     const { email, otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
@@ -141,7 +142,7 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-const sendOtp = async (req, res, next) => {
+export const sendOtp = async (req, res, next) => {
   try {
     const { email, phone } = req.body;
 
@@ -208,7 +209,7 @@ const sendOtp = async (req, res, next) => {
   }
 };
 
-const register = async (req, res, next) => {
+export const register = async (req, res, next) => {
   try {
     const {
       name,
@@ -302,7 +303,6 @@ const register = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Trigger real-time SSE registration broadcast
-    const { broadcastNewUser } = require("../utils/sse");
     broadcastNewUser(user);
 
     if (role !== "admin") {
@@ -336,7 +336,7 @@ const register = async (req, res, next) => {
   }
 };
 
-const login = async (req, res, next) => {
+export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -411,7 +411,7 @@ const login = async (req, res, next) => {
   }
 };
 
-const refreshToken = async (req, res, next) => {
+export const refreshToken = async (req, res, next) => {
   try {
     const { token } = req.body;
     if (!token)
@@ -438,7 +438,7 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
-const logout = async (req, res, next) => {
+export const logout = async (req, res, next) => {
   try {
     const { token } = req.body;
     if (token) {
@@ -454,15 +454,4 @@ const logout = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-module.exports = {
-  register,
-  login,
-  refreshToken,
-  logout,
-  sendOtp,
-  forgotPassword,
-  verifyOtp,
-  resetPassword,
 };

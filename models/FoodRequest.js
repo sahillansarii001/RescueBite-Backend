@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const foodRequestSchema = new mongoose.Schema({
   ngoId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -32,4 +32,4 @@ const foodRequestSchema = new mongoose.Schema({
   completedAt: { type: Date, default: null },
 });
 
-module.exports = mongoose.model("FoodRequest", foodRequestSchema);
+export default mongoose.model("FoodRequest", foodRequestSchema);

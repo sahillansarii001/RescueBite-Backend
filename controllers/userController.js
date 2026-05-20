@@ -1,9 +1,10 @@
-const bcrypt = require("bcryptjs");
-const User = require("../models/User");
-const Donation = require("../models/Donation");
-const sendEmail = require("../utils/sendEmail");
+import bcrypt from "bcryptjs";
+import User from "../models/User.js";
+import Donation from "../models/Donation.js";
+import sendEmail from "../utils/sendEmail.js";
+import { broadcastNewUser } from "../utils/sse.js";
 
-const getLeaderboard = async (req, res, next) => {
+export const getLeaderboard = async (req, res, next) => {
   try {
     const leaderboard = await User.find({ role: "donor" })
       .sort({ points: -1 })
@@ -15,7 +16,7 @@ const getLeaderboard = async (req, res, next) => {
   }
 };
 
-const getProfile = async (req, res, next) => {
+export const getProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.userId).select("-password");
     if (!user)
@@ -28,7 +29,7 @@ const getProfile = async (req, res, next) => {
   }
 };
 
-const updateProfile = async (req, res, next) => {
+export const updateProfile = async (req, res, next) => {
   try {
     const { name, email, location, language, donorType, phone, address } =
       req.body;
@@ -67,7 +68,7 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
-const changePassword = async (req, res, next) => {
+export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
@@ -101,7 +102,7 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-const getAllUsers = async (req, res, next) => {
+export const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find().select("-password");
     return res.status(200).json({ success: true, users });
@@ -111,7 +112,7 @@ const getAllUsers = async (req, res, next) => {
 };
 
 // Admin: create a user manually
-const adminCreateUser = async (req, res, next) => {
+export const adminCreateUser = async (req, res, next) => {
   try {
     const {
       name,
@@ -146,7 +147,6 @@ const adminCreateUser = async (req, res, next) => {
     const user = await User.create(userData);
 
     // Trigger real-time SSE registration broadcast
-    const { broadcastNewUser } = require("../utils/sse");
     broadcastNewUser(user);
 
     const userObj = user.toObject();
@@ -158,7 +158,7 @@ const adminCreateUser = async (req, res, next) => {
 };
 
 // Admin: delete a user and their donations
-const adminDeleteUser = async (req, res, next) => {
+export const adminDeleteUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)
@@ -180,7 +180,7 @@ const adminDeleteUser = async (req, res, next) => {
 };
 
 // Admin: update any user's role, points, or basic info
-const adminUpdateUser = async (req, res, next) => {
+export const adminUpdateUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)
@@ -207,7 +207,7 @@ const adminUpdateUser = async (req, res, next) => {
 };
 
 // Admin: reset a user's password
-const adminResetPassword = async (req, res, next) => {
+export const adminResetPassword = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)
@@ -234,7 +234,7 @@ const adminResetPassword = async (req, res, next) => {
 };
 
 // Admin: get a single user with their donations
-const adminGetUser = async (req, res, next) => {
+export const adminGetUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (!user)
@@ -251,7 +251,7 @@ const adminGetUser = async (req, res, next) => {
 };
 
 // Admin: verify an NGO
-const adminVerifyNgo = async (req, res, next) => {
+export const adminVerifyNgo = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)
@@ -349,7 +349,7 @@ const adminVerifyNgo = async (req, res, next) => {
 };
 
 // Admin: reject an NGO (clear document & set unverified, notifying them via email)
-const adminRejectNgo = async (req, res, next) => {
+export const adminRejectNgo = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user)
@@ -415,7 +415,7 @@ const adminRejectNgo = async (req, res, next) => {
             <!-- Footer -->
             <p style="text-align: center; font-size: 11px; color: #94a3b8; margin-top: 20px;">
               © 2026 RescueBite Platform. All rights reserved.
-            </p>
+              </p>
           </div>
         `,
       });
@@ -517,7 +517,7 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 // Endpoint Controller
-const getNearestCounterparts = async (req, res, next) => {
+export const getNearestCounterparts = async (req, res, next) => {
   try {
     const currentUser = await User.findById(req.user.userId);
     if (!currentUser)
@@ -584,20 +584,4 @@ const getNearestCounterparts = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-module.exports = {
-  getLeaderboard,
-  getProfile,
-  updateProfile,
-  changePassword,
-  getAllUsers,
-  adminCreateUser,
-  adminDeleteUser,
-  adminUpdateUser,
-  adminResetPassword,
-  adminGetUser,
-  adminVerifyNgo,
-  adminRejectNgo,
-  getNearestCounterparts,
 };

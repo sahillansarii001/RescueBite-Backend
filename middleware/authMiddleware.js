@@ -1,6 +1,6 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
-const protect = (req, res, next) => {
+export const protect = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res
@@ -20,7 +20,7 @@ const protect = (req, res, next) => {
   }
 };
 
-const restrictTo = (...roles) => {
+export const restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ success: false, message: "Access denied" });
@@ -28,5 +28,3 @@ const restrictTo = (...roles) => {
     next();
   };
 };
-
-module.exports = { protect, restrictTo };

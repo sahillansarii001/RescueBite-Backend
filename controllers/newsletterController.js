@@ -1,6 +1,6 @@
-const sendEmail = require("../utils/sendEmail");
+import sendEmail from "../utils/sendEmail.js";
 
-const subscribe = async (req, res, next) => {
+export const subscribe = async (req, res, next) => {
   try {
     const { email } = req.body;
 
@@ -66,5 +66,3 @@ const subscribe = async (req, res, next) => {
     next(err);
   }
 };
-
-module.exports = { subscribe };

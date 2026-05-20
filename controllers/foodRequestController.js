@@ -1,7 +1,8 @@
-const FoodRequest = require("../models/FoodRequest");
-const User = require("../models/User");
+import FoodRequest from "../models/FoodRequest.js";
+import User from "../models/User.js";
+import sendEmail from "../utils/sendEmail.js";
 
-const createRequest = async (req, res, next) => {
+export const createRequest = async (req, res, next) => {
   try {
     const { quantityNeeded } = req.body;
     if (!quantityNeeded)
@@ -30,7 +31,7 @@ const createRequest = async (req, res, next) => {
   }
 };
 
-const getActiveRequests = async (req, res, next) => {
+export const getActiveRequests = async (req, res, next) => {
   try {
     const requests = await FoodRequest.find({ status: "active" })
       .populate("ngoId", "name location email phone address mapLink")
@@ -41,7 +42,7 @@ const getActiveRequests = async (req, res, next) => {
   }
 };
 
-const getMyRequests = async (req, res, next) => {
+export const getMyRequests = async (req, res, next) => {
   try {
     const requests = await FoodRequest.find({ ngoId: req.user.userId })
       .populate(
@@ -55,7 +56,7 @@ const getMyRequests = async (req, res, next) => {
   }
 };
 
-const acceptRequest = async (req, res, next) => {
+export const acceptRequest = async (req, res, next) => {
   try {
     const { prepTime } = req.body;
     if (!prepTime) {
@@ -85,7 +86,6 @@ const acceptRequest = async (req, res, next) => {
     const ngo = await User.findById(request.ngoId);
 
     if (donor && ngo) {
-      const sendEmail = require("../utils/sendEmail");
       if (process.env.OAUTH_REFRESH_TOKEN || process.env.MAIL_PASS) {
         try {
           await sendEmail({
@@ -131,7 +131,7 @@ const acceptRequest = async (req, res, next) => {
   }
 };
 
-const markPrepared = async (req, res, next) => {
+export const markPrepared = async (req, res, next) => {
   try {
     const request = await FoodRequest.findById(req.params.id);
     if (!request)
@@ -162,7 +162,6 @@ const markPrepared = async (req, res, next) => {
     const ngo = await User.findById(request.ngoId);
     const donor = await User.findById(req.user.userId);
     if (ngo && donor) {
-      const sendEmail = require("../utils/sendEmail");
       if (process.env.OAUTH_REFRESH_TOKEN || process.env.MAIL_PASS) {
         try {
           await sendEmail({
@@ -204,7 +203,7 @@ const markPrepared = async (req, res, next) => {
   }
 };
 
-const sendRequestCollectOtp = async (req, res, next) => {
+export const sendRequestCollectOtp = async (req, res, next) => {
   try {
     const request = await FoodRequest.findById(req.params.id);
     if (!request)
@@ -245,7 +244,6 @@ const sendRequestCollectOtp = async (req, res, next) => {
         .status(404)
         .json({ success: false, message: "Donor not found for this request." });
 
-    const sendEmail = require("../utils/sendEmail");
     if (process.env.OAUTH_REFRESH_TOKEN || process.env.MAIL_PASS) {
       try {
         await sendEmail({
@@ -291,7 +289,7 @@ const sendRequestCollectOtp = async (req, res, next) => {
   }
 };
 
-const collectRequest = async (req, res, next) => {
+export const collectRequest = async (req, res, next) => {
   try {
     const request = await FoodRequest.findById(req.params.id);
     if (!request)
@@ -354,7 +352,7 @@ const collectRequest = async (req, res, next) => {
   }
 };
 
-const completeRequest = async (req, res, next) => {
+export const completeRequest = async (req, res, next) => {
   try {
     const request = await FoodRequest.findById(req.params.id);
     if (!request)
@@ -412,7 +410,7 @@ const completeRequest = async (req, res, next) => {
   }
 };
 
-const getDonorAcceptedRequests = async (req, res, next) => {
+export const getDonorAcceptedRequests = async (req, res, next) => {
   try {
     const requests = await FoodRequest.find({
       fulfilledBy: req.user.userId,
@@ -426,7 +424,7 @@ const getDonorAcceptedRequests = async (req, res, next) => {
   }
 };
 
-const getAllRequests = async (req, res, next) => {
+export const getAllRequests = async (req, res, next) => {
   try {
     const requests = await FoodRequest.find()
       .populate("ngoId", "name location email phone address mapLink")
@@ -441,7 +439,7 @@ const getAllRequests = async (req, res, next) => {
   }
 };
 
-const deleteRequest = async (req, res, next) => {
+export const deleteRequest = async (req, res, next) => {
   try {
     const request = await FoodRequest.findById(req.params.id);
     if (!request)
@@ -463,18 +461,4 @@ const deleteRequest = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
-
-module.exports = {
-  createRequest,
-  getActiveRequests,
-  getMyRequests,
-  acceptRequest,
-  markPrepared,
-  sendRequestCollectOtp,
-  collectRequest,
-  completeRequest,
-  getDonorAcceptedRequests,
-  getAllRequests,
-  deleteRequest,
 };

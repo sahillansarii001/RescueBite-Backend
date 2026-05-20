@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const { protect, restrictTo } = require("../middleware/authMiddleware");
-const {
+import { protect, restrictTo } from "../middleware/authMiddleware.js";
+import {
   createRequest,
   getActiveRequests,
   getMyRequests,
@@ -13,7 +13,7 @@ const {
   getDonorAcceptedRequests,
   getAllRequests,
   deleteRequest,
-} = require("../controllers/foodRequestController");
+} from "../controllers/foodRequestController.js";
 
 router.post("/", protect, restrictTo("ngo"), createRequest);
 router.get("/my-requests", protect, restrictTo("ngo"), getMyRequests);
@@ -37,4 +37,4 @@ router.put("/:id/collect", protect, restrictTo("ngo"), collectRequest);
 router.put("/:id/complete", protect, restrictTo("ngo"), completeRequest);
 router.delete("/:id", protect, restrictTo("ngo", "admin"), deleteRequest);
 
-module.exports = router;
+export default router;

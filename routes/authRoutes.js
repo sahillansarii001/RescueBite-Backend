@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {
+import {
   register,
   login,
   refreshToken,
@@ -9,8 +9,8 @@ const {
   forgotPassword,
   verifyOtp,
   resetPassword,
-} = require("../controllers/authController");
-const { uploadSingle } = require("../middleware/upload");
+} from "../controllers/authController.js";
+import { uploadSingle } from "../middleware/upload.js";
 
 router.post("/send-otp", sendOtp);
 router.post("/forgot-password", forgotPassword);
@@ -30,4 +30,4 @@ router.post("/upload", uploadSingle, (req, res) => {
   return res.status(200).json({ success: true, url: req.file.path });
 });
 
-module.exports = router;
+export default router;

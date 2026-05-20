@@ -1,6 +1,6 @@
-const sendEmail = require("../utils/sendEmail");
+import sendEmail from "../utils/sendEmail.js";
 
-const sendContact = async (req, res, next) => {
+export const sendContact = async (req, res, next) => {
   try {
     const { name, email, subject, message } = req.body;
 
@@ -56,5 +56,3 @@ const sendContact = async (req, res, next) => {
     next(err);
   }
 };
-
-module.exports = { sendContact };
