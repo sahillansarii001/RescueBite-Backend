@@ -19,7 +19,7 @@ export const sendContact = async (req, res, next) => {
 
     // Send email to admin
     await sendEmail({
-      email: process.env.MAIL_USER || "sahilansari9967747153@gmail.com",
+      email: process.env.MAIL_USER || "rescuebite.admin@gmail.com",
       subject: `RescueBite Contact: ${subject}`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; border: 1px solid #e0e0e0; border-radius: 10px;">

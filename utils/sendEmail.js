@@ -5,7 +5,7 @@ const sendEmail = async (options) => {
   const clientSecret = process.env.OAUTH_CLIENT_SECRET;
   const refreshToken = process.env.OAUTH_REFRESH_TOKEN;
   const senderEmail =
-    process.env.MAIL_USER || "sahilansari9967747153@gmail.com";
+    process.env.MAIL_USER || "rescuebite.admin@gmail.com";
 
   // Log config to help diagnose issues in production
   console.log(`[sendEmail] Attempting to send to: ${options.email}`);
