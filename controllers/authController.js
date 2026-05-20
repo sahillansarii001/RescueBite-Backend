@@ -283,7 +283,6 @@ export const register = async (req, res, next) => {
       password: hashedPassword,
       role,
       location,
-      language,
       address,
       mapLink,
       phone,
