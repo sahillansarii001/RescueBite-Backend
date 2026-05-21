@@ -416,6 +416,19 @@ export const refreshToken = async (req, res, next) => {
         .json({ success: false, message: "Refresh token required" });
 
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+
+    // Bypass database check for system admin user defined via env
+    if (decoded.userId === "admin_env_id_001") {
+      const adminUser = {
+        _id: "admin_env_id_001",
+        name: "System Admin",
+        email: process.env.ADMIN_EMAIL,
+        role: "admin",
+      };
+      const newAccessToken = generateToken(adminUser);
+      return res.status(200).json({ success: true, token: newAccessToken });
+    }
+
     const user = await User.findById(decoded.userId);
 
     if (!user || user.refreshToken !== token) {

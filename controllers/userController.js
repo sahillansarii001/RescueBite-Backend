@@ -586,11 +586,24 @@ const getDrivingDistance = async (lat1, lon1, lat2, lon2) => {
 // Endpoint Controller
 export const getNearestCounterparts = async (req, res, next) => {
   try {
-    const currentUser = await User.findById(req.user.userId);
-    if (!currentUser)
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+    let currentUser;
+    if (req.user.userId === "admin_env_id_001" || !req.user.userId.match(/^[0-9a-fA-F]{24}$/)) {
+      currentUser = {
+        _id: req.user.userId,
+        name: "System Admin",
+        email: process.env.ADMIN_EMAIL || "admin@rescuebite.com",
+        role: "admin",
+        address: "Mumbai, India",
+        location: "Mumbai",
+        mapLink: "",
+      };
+    } else {
+      currentUser = await User.findById(req.user.userId);
+      if (!currentUser)
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+    }
 
     const currentUserCoords = await getCoordinates(
       currentUser.address,
@@ -603,12 +616,14 @@ export const getNearestCounterparts = async (req, res, next) => {
       query = { role: "ngo", isVerified: true };
     } else if (currentUser.role === "ngo") {
       query = { role: "donor" };
+    } else if (currentUser.role === "admin") {
+      query = { role: { $in: ["donor", "ngo"] } };
     } else {
       return res
         .status(400)
         .json({
           success: false,
-          message: "Only donors or NGOs can query nearest partners",
+          message: "Only donors, NGOs, or admins can query nearest partners",
         });
     }
 

@@ -3,11 +3,31 @@ import User from "../models/User.js";
 
 export const getAnalytics = async (req, res, next) => {
   try {
+    const { range = "1y" } = req.query;
     const now = new Date();
+    
+    let startDate = null;
+    if (range === "1m") {
+      startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 1);
+    } else if (range === "3m") {
+      startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 3);
+    } else if (range === "6m") {
+      startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 6);
+    } else if (range === "1y") {
+      startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 12);
+    }
+
+    const donationFilter = startDate ? { createdAt: { $gte: startDate } } : {};
+    const donationMatchStage = startDate ? { $match: { createdAt: { $gte: startDate } } } : { $match: {} };
+
+    // Trends calculation variables
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(now.getDate() - 30);
-    const twelveMonthsAgo = new Date(now);
-    twelveMonthsAgo.setMonth(now.getMonth() - 12);
+    const twelveMonthsAgo = startDate || new Date(now.setMonth(now.getMonth() - 12));
 
     const [
       totalDonations,
@@ -21,12 +41,13 @@ export const getAnalytics = async (req, res, next) => {
       monthlyTrends,
       topDonors,
     ] = await Promise.all([
-      Donation.countDocuments(),
-      Donation.countDocuments({ status: "completed" }),
-      Donation.countDocuments({ status: "pending" }),
+      Donation.countDocuments(donationFilter),
+      Donation.countDocuments({ status: "completed", ...donationFilter }),
+      Donation.countDocuments({ status: "pending", ...donationFilter }),
       User.countDocuments({ role: "ngo" }),
       User.countDocuments({ role: "donor" }),
       Donation.aggregate([
+        donationMatchStage,
         { $group: { _id: "$foodType", count: { $sum: 1 } } },
       ]),
       User.aggregate([
@@ -75,6 +96,54 @@ export const getAnalytics = async (req, res, next) => {
         dailyTrends,
         monthlyTrends,
         topDonors,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getPublicAnalytics = async (req, res, next) => {
+  try {
+    const [
+      totalDonations,
+      completedDonations,
+      activeNGOs,
+      totalDonors,
+      foodTypeDistribution,
+      monthlyTrends,
+    ] = await Promise.all([
+      Donation.countDocuments(),
+      Donation.countDocuments({ status: "completed" }),
+      User.countDocuments({ role: "ngo" }),
+      User.countDocuments({ role: "donor" }),
+      Donation.aggregate([
+        { $group: { _id: "$foodType", count: { $sum: 1 } } },
+      ]),
+      Donation.aggregate([
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+        { $limit: 12 },
+      ]),
+    ]);
+
+    const totalMealsSaved = completedDonations * 3;
+
+    return res.status(200).json({
+      success: true,
+      analytics: {
+        totalDonations,
+        completedDonations,
+        activeNGOs,
+        totalDonors,
+        totalMealsSaved,
+        foodTypeDistribution,
+        monthlyTrends,
       },
     });
   } catch (err) {
