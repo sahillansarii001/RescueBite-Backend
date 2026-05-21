@@ -503,14 +503,15 @@ const extractCoordinatesFromUrl = async (url) => {
 const geocodeWithNominatim = async (query) => {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=1`,
       { headers: { 'User-Agent': 'RescueBite/1.0' } }
     );
     const data = await res.json();
-    if (data && data.length > 0) {
+    if (data && data.features && data.features.length > 0) {
+      const coords = data.features[0].geometry.coordinates;
       return {
-        latitude: parseFloat(data[0].lat),
-        longitude: parseFloat(data[0].lon),
+        latitude: parseFloat(coords[1]),
+        longitude: parseFloat(coords[0]),
       };
     }
   } catch (err) {
