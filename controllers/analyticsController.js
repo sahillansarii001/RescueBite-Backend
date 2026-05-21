@@ -40,6 +40,7 @@ export const getAnalytics = async (req, res, next) => {
       dailyTrends,
       monthlyTrends,
       topDonors,
+      recentDonationsLog,
     ] = await Promise.all([
       Donation.countDocuments(donationFilter),
       Donation.countDocuments({ status: "completed", ...donationFilter }),
@@ -78,6 +79,12 @@ export const getAnalytics = async (req, res, next) => {
         .sort({ points: -1 })
         .limit(5)
         .select("name points donationCount donorType"),
+      Donation.find(donationFilter)
+        .populate("donorId", "name email donorType")
+        .populate("acceptedBy", "name email")
+        .sort({ createdAt: -1 })
+        .limit(25)
+        .select("foodName quantity foodType status location createdAt"),
     ]);
 
     const totalMealsSaved = completedDonations * 3;
@@ -96,6 +103,7 @@ export const getAnalytics = async (req, res, next) => {
         dailyTrends,
         monthlyTrends,
         topDonors,
+        recentDonationsLog,
       },
     });
   } catch (err) {

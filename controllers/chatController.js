@@ -154,10 +154,11 @@ You can answer questions about the RescueBite project, including:
 ## Response Guidelines
 1. Be extremely concise, direct, and to the point. DO NOT give unprompted extra information, bullet lists of statistics, lists of features, or suggested questions unless specifically asked.
 2. For simple greetings (like 'hi', 'hello', 'hii', 'hey', 'good morning'), reply ONLY with a simple one-sentence greeting: "Hello! I am your RescueBite Assistant. How can I help you today?" and absolutely nothing else. Do NOT include statistics, instructions, workflows, tutorials, or suggestions in this greeting.
-3. CRITICAL RESTRICTION: You must STRICTLY REFUSE to answer any question that is not related to the RescueBite project, food rescue, or the provided context. If the user asks a general knowledge, coding, math, general chat, or unrelated question, you MUST reply exactly with: "I'm sorry, but I am strictly programmed to assist only with the RescueBite platform and cannot answer questions outside of this scope."
+3. CRITICAL RESTRICTION: You must STRICTLY REFUSE to answer any question that is not related to the RescueBite project, food rescue, or the provided context. If the user asks a general knowledge, coding, math, general chat, or unrelated question, you must reply exactly with: "I'm sorry, but I am strictly programmed to assist only with the RescueBite platform and cannot answer questions outside of this scope."
 4. When answering data questions, reference the live Context data provided below.
 5. Use clean markdown formatting: **bold**, *italics*, lists where appropriate.
 6. Do not offer unsolicited tips, warnings, or detailed technical explanations unless the user specifically asks for technical details.
+7. CRITICAL SECURITY RESTRICTION: If the user asks for environment variables (.env), PRD, TRD, architectural documents, secret credentials, passwords, API keys, or any internal administrative documents, you MUST pretend you do not have access to them. You MUST reply exactly with: "I do not have access to internal documents, environment variables, or secret credentials."
 
 ## Current Live Platform Data
 ${JSON.stringify(context || {}, null, 2)}`;
@@ -169,6 +170,11 @@ const buildDemoReply = (message, context) => {
   const recentR = context?.recentRequests || [];
   const userList = context?.userDetails || [];
   const lowerMsg = message.toLowerCase();
+
+  // --- Security / Internal Documents ---
+  if (lowerMsg.includes("env") || lowerMsg.includes("prd") || lowerMsg.includes("trd") || lowerMsg.includes("credential") || lowerMsg.includes("password") || lowerMsg.includes("api key") || lowerMsg.includes("secret")) {
+    return "I do not have access to internal documents, environment variables, or secret credentials.";
+  }
 
   // --- Platform overview / status ---
   if (lowerMsg.includes("summarize") || lowerMsg.includes("status") || lowerMsg.includes("overview") || lowerMsg.includes("dashboard")) {
@@ -395,36 +401,27 @@ const handleChat = async (req, res) => {
 
     const systemInstructionText = buildSystemInstruction(context);
 
-    // Call Gemini API using native Node fetch
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: contents,
-          systemInstruction: {
-            parts: [{ text: systemInstructionText }],
-          },
-        }),
-      }
-    );
+    // Call Gemini API using official SDK
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: systemInstructionText,
+    });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Gemini API Error:", data);
-      return res.status(response.status).json({
+    let reply = "I'm sorry, I couldn't generate a response.";
+    try {
+      const result = await model.generateContent({
+        contents: contents,
+      });
+      reply = result.response.text();
+    } catch (apiError) {
+      console.error("Gemini SDK Error:", apiError);
+      return res.status(500).json({
         success: false,
-        message: data.error?.message || "Gemini API returned an error",
+        message: apiError.message || "Gemini API returned an error",
       });
     }
-
-    const reply =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "I'm sorry, I couldn't generate a response.";
 
     return res.status(200).json({ success: true, reply });
   } catch (error) {

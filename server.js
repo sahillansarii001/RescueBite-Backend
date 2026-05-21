@@ -12,8 +12,6 @@ import foodRequestRoutes from "./routes/foodRequestRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 
-connectDB();
-
 const app = express();
 
 app.use(
@@ -47,6 +45,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: err.message });
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
-});
+const startServer = async () => {
+  await connectDB();
+  
+  app.listen(process.env.PORT, () => {
+    console.log(`Server running on port ${process.env.PORT}`);
+  });
+};
+
+startServer();
