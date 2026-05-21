@@ -500,6 +500,25 @@ const extractCoordinatesFromUrl = async (url) => {
   return null;
 };
 
+const geocodeWithNominatim = async (query) => {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+      { headers: { 'User-Agent': 'RescueBite/1.0' } }
+    );
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return {
+        latitude: parseFloat(data[0].lat),
+        longitude: parseFloat(data[0].lon),
+      };
+    }
+  } catch (err) {
+    console.error("Geocoding failed for:", query, err.message);
+  }
+  return null;
+};
+
 const getCoordinates = async (address, locationName = "", mapLink = "") => {
   if (mapLink && geocodeCache.has(mapLink)) {
     return geocodeCache.get(mapLink);
@@ -513,38 +532,40 @@ const getCoordinates = async (address, locationName = "", mapLink = "") => {
     }
   }
 
-  const query = `${address} ${locationName}`.trim();
-  if (!query) return { latitude: 19.1197, longitude: 72.8468 }; // Default Mumbai
+  const baseQuery = `${address} ${locationName}`.trim();
+  if (!baseQuery) return { latitude: 19.1197, longitude: 72.8468 }; // Default Mumbai
 
-  if (geocodeCache.has(query)) {
-    return geocodeCache.get(query);
+  if (geocodeCache.has(baseQuery)) {
+    return geocodeCache.get(baseQuery);
   }
 
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
-      { headers: { 'User-Agent': 'RescueBite/1.0' } }
-    );
-    const data = await res.json();
-    if (data && data.length > 0) {
-      const coords = {
-        latitude: parseFloat(data[0].lat),
-        longitude: parseFloat(data[0].lon),
-      };
-      geocodeCache.set(query, coords);
-      return coords;
-    }
-  } catch (err) {
-    console.error("Geocoding failed for:", query);
+  // Fallback query chain for better accuracy with Indian addresses
+  const attempts = [
+    baseQuery,
+    `${locationName}, Maharashtra`,
+    address.split(',').slice(-2).join(',').trim() + ' ' + locationName,
+    "Mumbai, Maharashtra"
+  ];
+
+  let coords = null;
+  for (const q of attempts) {
+    if (!q || q.trim() === ',' || q.trim() === 'Maharashtra') continue;
+    coords = await geocodeWithNominatim(q);
+    if (coords) break;
   }
 
-  // Fallback to random nearby if geocoding fails
-  const hash = query
+  if (coords) {
+    geocodeCache.set(baseQuery, coords);
+    return coords;
+  }
+
+  // Ultimate Fallback to random nearby if all geocoding fails
+  const hash = baseQuery
     .split("")
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const pertLat = (hash % 100) / 1000 - 0.05;
   const pertLon = ((hash * 17) % 100) / 1000 - 0.05;
-  const coords = {
+  coords = {
     latitude: 19.1197 + pertLat,
     longitude: 72.8468 + pertLon,
   };
