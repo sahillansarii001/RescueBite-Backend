@@ -4,11 +4,14 @@ import cloudinary from "../config/cloudinary.js";
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: async (req, file) => ({
-    folder: "rescuebite/donations",
-    allowed_formats: ["jpg", "jpeg", "png", "webp", "pdf"],
-    resource_type: "auto",
-  }),
+  params: async (req, file) => {
+    const isPdf = file.mimetype === "application/pdf" || file.originalname.toLowerCase().endsWith(".pdf");
+    return {
+      folder: "rescuebite/donations",
+      allowed_formats: ["jpg", "jpeg", "png", "webp", "pdf"],
+      resource_type: isPdf ? "raw" : "auto",
+    };
+  },
 });
 
 const upload = multer({ storage });
