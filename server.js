@@ -16,12 +16,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:3002",
-      "https://rescue-bite-frontend.vercel.app",
-    ],
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ["https://rescuebiteofficial.vercel.app"],
     credentials: true,
   }),
 );
@@ -47,7 +42,7 @@ app.use((err, req, res, next) => {
 
 const startServer = async () => {
   await connectDB();
-  
+
   app.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
   });
